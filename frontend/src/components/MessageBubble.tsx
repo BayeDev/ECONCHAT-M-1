@@ -1,4 +1,10 @@
+/**
+ * EconChat M-2 - MessageBubble Component
+ * Enhanced message display with source-specific styling
+ */
+
 import { useMemo } from 'react';
+import { type DataSource } from '../utils/formatters';
 
 interface Message {
   id: string;
@@ -12,35 +18,84 @@ interface MessageBubbleProps {
   message: Message;
 }
 
-const SOURCE_STYLES: Record<string, { bg: string; text: string }> = {
-  'World Bank': { bg: 'bg-blue-100', text: 'text-blue-800' },
-  'IMF': { bg: 'bg-green-100', text: 'text-green-800' },
-  'FAO': { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  'UN Comtrade': { bg: 'bg-purple-100', text: 'text-purple-800' },
-  'Our World in Data': { bg: 'bg-pink-100', text: 'text-pink-800' }
+// Map source names to DataSource type
+const SOURCE_MAP: Record<string, DataSource> = {
+  'World Bank': 'worldbank',
+  'IMF': 'imf',
+  'FAO': 'fao',
+  'UN Comtrade': 'comtrade',
+  'Our World in Data': 'owid'
+};
+
+// Source badge styles with platform colors
+const SOURCE_BADGE_CLASSES: Record<string, string> = {
+  'World Bank': 'source-badge world-bank',
+  'IMF': 'source-badge imf',
+  'FAO': 'source-badge fao',
+  'UN Comtrade': 'source-badge un-comtrade',
+  'Our World in Data': 'source-badge owid'
 };
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
+  // Determine primary source for table styling
+  const primarySource = useMemo(() => {
+    if (!message.sources || message.sources.length === 0) return null;
+    return SOURCE_MAP[message.sources[0]] || null;
+  }, [message.sources]);
+
+  // Get table style class based on primary source
+  const tableStyleClass = useMemo(() => {
+    if (!primarySource) return '';
+    const styleMap: Record<DataSource, string> = {
+      worldbank: 'wb-style',
+      imf: 'imf-style',
+      fao: 'fao-style',
+      comtrade: 'un-style',
+      owid: 'owid-style'
+    };
+    return styleMap[primarySource];
+  }, [primarySource]);
+
   // Format the content with markdown-like parsing
   const formattedContent = useMemo(() => {
     let content = message.content;
 
-    // Escape HTML
+    // Escape HTML (but preserve our injected classes)
     content = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+    // Headers: # ## ###
+    content = content.replace(/^### (.*$)/gim, '<h4 class="text-base font-semibold mt-4 mb-2 text-gray-800">$1</h4>');
+    content = content.replace(/^## (.*$)/gim, '<h3 class="text-lg font-semibold mt-4 mb-2 text-gray-800">$1</h3>');
+    content = content.replace(/^# (.*$)/gim, '<h2 class="chart-title text-xl mt-4 mb-2">$1</h2>');
+
     // Bold: **text** or __text__
-    content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    content = content.replace(/__(.*?)__/g, '<strong>$1</strong>');
+    content = content.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
+    content = content.replace(/__(.*?)__/g, '<strong class="font-semibold">$1</strong>');
 
     // Italic: *text* or _text_
     content = content.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
 
     // Code: `code`
-    content = content.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+    content = content.replace(
+      /`([^`]+)`/g,
+      '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-gray-800">$1</code>'
+    );
 
-    // Detect and format markdown tables
+    // Lists: - item or * item
+    content = content.replace(
+      /^[\-\*] (.*)$/gm,
+      '<li class="ml-4 list-disc text-gray-700">$1</li>'
+    );
+
+    // Wrap consecutive list items
+    content = content.replace(
+      /(<li[^>]*>.*<\/li>\n?)+/g,
+      '<ul class="my-2 space-y-1">$&</ul>'
+    );
+
+    // Detect and format markdown tables with source-specific styling
     if (content.includes('|') && content.includes('\n')) {
       const lines = content.split('\n');
       let inTable = false;
@@ -51,7 +106,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         const trimmedLine = line.trim();
 
         if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
-          // Skip separator lines
+          // Skip separator lines (|---|---|)
           if (trimmedLine.replace(/[\|\-\s:]/g, '').length === 0) {
             continue;
           }
@@ -65,7 +120,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         } else {
           if (inTable) {
             // End of table - render it
-            resultLines.push(renderTable(tableRows));
+            resultLines.push(renderTable(tableRows, tableStyleClass));
             inTable = false;
             tableRows = [];
           }
@@ -75,7 +130,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
       // Handle table at end of content
       if (inTable && tableRows.length > 0) {
-        resultLines.push(renderTable(tableRows));
+        resultLines.push(renderTable(tableRows, tableStyleClass));
       }
 
       content = resultLines.join('\n');
@@ -84,25 +139,43 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
     // Line breaks
     content = content.replace(/\n/g, '<br/>');
 
-    return content;
-  }, [message.content]);
+    // Clean up multiple <br/> tags
+    content = content.replace(/(<br\/>){3,}/g, '<br/><br/>');
 
-  function renderTable(rows: string[]): string {
+    return content;
+  }, [message.content, tableStyleClass]);
+
+  // Render markdown table with source-specific styling
+  function renderTable(rows: string[], styleClass: string): string {
     if (rows.length === 0) return '';
 
-    let html = '<div class="overflow-x-auto my-3"><table class="min-w-full border-collapse text-sm">';
+    let html = `<div class="overflow-x-auto my-4 rounded-lg border border-gray-200 animate-slide-up">`;
+    html += `<table class="data-table ${styleClass}">`;
 
     rows.forEach((row, i) => {
       const cells = row.split('|').filter(c => c.trim());
       const isHeader = i === 0;
 
+      if (isHeader) {
+        html += '<thead>';
+      }
+
       html += '<tr>';
       cells.forEach(cell => {
+        const cellContent = cell.trim();
         const tag = isHeader ? 'th' : 'td';
-        const cellClass = isHeader
-          ? 'border border-gray-300 px-3 py-2 bg-gray-50 font-semibold text-left'
-          : 'border border-gray-300 px-3 py-2';
-        html += `<${tag} class="${cellClass}">${cell.trim()}</${tag}>`;
+
+        // Detect numeric cells for right alignment
+        const isNumeric = /^[\d\$\-\+\.\,\%]+$/.test(cellContent.replace(/[^\d\$\-\+\.\,\%]/g, ''));
+        const alignClass = isNumeric && !isHeader ? 'numeric' : '';
+
+        // Detect forecast values (italic or with year > current)
+        const isForecast = cellContent.includes('*') ||
+          (isNumeric && /^\d{4}$/.test(cellContent) && parseInt(cellContent) > new Date().getFullYear());
+
+        const cellClass = [alignClass, isForecast ? 'forecast-cell' : ''].filter(Boolean).join(' ');
+
+        html += `<${tag}${cellClass ? ` class="${cellClass}"` : ''}>${cellContent}</${tag}>`;
       });
       html += '</tr>';
 
@@ -116,9 +189,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   }
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-slide-up`}>
       <div
-        className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+        className={`max-w-[90%] rounded-2xl px-5 py-4 ${
           isUser
             ? 'bg-blue-600 text-white'
             : 'bg-white border border-gray-200 shadow-sm'
@@ -127,20 +200,21 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         {/* Message content */}
         <div
           className={`prose prose-sm max-w-none ${isUser ? 'prose-invert' : ''}`}
+          style={{
+            fontFamily: 'var(--font-body)',
+            fontSize: 'var(--text-base)'
+          }}
           dangerouslySetInnerHTML={{ __html: formattedContent }}
         />
 
-        {/* Source tags */}
+        {/* Source tags with platform-specific styling */}
         {message.sources && message.sources.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2 border-t border-gray-100">
-            <span className="text-xs text-gray-400">Sources:</span>
+          <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-gray-100">
+            <span className="text-xs text-gray-400 font-medium">Sources:</span>
             {message.sources.map((source, i) => {
-              const style = SOURCE_STYLES[source] || { bg: 'bg-gray-100', text: 'text-gray-800' };
+              const badgeClass = SOURCE_BADGE_CLASSES[source] || 'source-badge';
               return (
-                <span
-                  key={i}
-                  className={`text-xs px-2 py-0.5 rounded-full ${style.bg} ${style.text}`}
-                >
+                <span key={i} className={badgeClass}>
                   {source}
                 </span>
               );
@@ -149,7 +223,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         )}
 
         {/* Timestamp */}
-        <div className={`text-xs mt-2 ${isUser ? 'text-blue-200' : 'text-gray-400'}`}>
+        <div className={`text-xs mt-3 ${isUser ? 'text-blue-200' : 'text-gray-400'}`}>
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>

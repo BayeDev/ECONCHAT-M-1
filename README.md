@@ -1,8 +1,28 @@
-# EconChat M-1 - AI Economic Data Assistant
+# EconChat M-2 - AI Economic Data Assistant
 
 An AI-powered chat application that lets economists query economic data using natural language. EconChat wraps Claude API with 5 major economic data sources pre-connected.
 
-**Version: M-1**
+**Version: M-2** - Enhanced Data Visualization UI
+
+## What's New in M-2
+
+### Professional Data Visualization
+- **Source-specific table styling**: Tables automatically style based on data source (World Bank, IMF, FAO, UN Comtrade, OWID)
+- **Platform color palettes**: Authentic colors matching official data platforms
+- **Typography system**: Playfair Display for headlines, Lato/Open Sans for body text
+- **Responsive charts**: SVG-based line and bar charts with animations
+
+### Formatting Standards
+- **Number formatting**: Comma thousands separators, scale abbreviations (K, M, B, T)
+- **Missing data conventions**: Platform-specific indicators (.., n/a, ...)
+- **Forecast highlighting**: IMF-style shaded cells for projection data
+- **FAO data flags**: Superscript indicators for estimates, imputations
+
+### Interactive Features
+- **Hover tooltips**: Rich data tooltips on charts and tables
+- **Sortable tables**: Click column headers to sort
+- **Direct labeling**: OWID-style labels on line charts
+- **Smooth animations**: Fade-in and slide-up transitions
 
 ## Features
 
@@ -52,15 +72,15 @@ npm run dev
 
 Frontend will start at http://localhost:5173
 
-## Data Sources
+## Data Sources & Styling
 
-| Source | Tools | Best For |
-|--------|-------|----------|
-| **World Bank** | wb_* | GDP, population, poverty, health, education indicators |
-| **IMF** | imf_* | GDP forecasts, inflation, unemployment, fiscal data |
-| **FAO** | fao_* | Crop production, livestock, food security |
-| **UN Comtrade** | comtrade_* | Trade flows, export/import partners |
-| **Our World in Data** | owid_* | Long-term trends, life expectancy, CO2, poverty |
+| Source | Style Class | Primary Color | Best For |
+|--------|-------------|---------------|----------|
+| **World Bank** | wb-style | #002244 | GDP, population, poverty, health, education |
+| **IMF** | imf-style | #004C97 | GDP forecasts, inflation, unemployment |
+| **FAO** | fao-style | #116AAB | Crop production, livestock, food security |
+| **UN Comtrade** | un-style | #009edb | Trade flows, export/import partners |
+| **Our World in Data** | owid-style | #3360a9 | Long-term trends, life expectancy, CO2 |
 
 ## Example Queries
 
@@ -94,42 +114,10 @@ Frontend will start at http://localhost:5173
 | `/api/tools` | GET | List available tools |
 | `/api/examples` | GET | Get example queries |
 
-### Chat Request
-
-```json
-{
-  "message": "What's Nigeria's GDP growth forecast?",
-  "sessionId": "optional-session-id"
-}
-```
-
-### Chat Response
-
-```json
-{
-  "response": "Based on IMF World Economic Outlook data...",
-  "toolsUsed": ["imf_get_weo_data"],
-  "sources": ["IMF"]
-}
-```
-
-## Docker Deployment
-
-```bash
-# Create .env file with your API keys
-cp .env.example .env
-# Edit .env with your ANTHROPIC_API_KEY
-
-# Build and run
-docker-compose up --build
-
-# Access at http://localhost:3000
-```
-
 ## Project Structure
 
 ```
-ECONCHAT-M-1/
+ECONCHAT-M-2/
 ├── backend/
 │   ├── src/
 │   │   ├── index.ts          # Express server
@@ -140,28 +128,40 @@ ECONCHAT-M-1/
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx
+│   │   ├── index.css         # M-2 visualization theme
+│   │   ├── utils/
+│   │   │   └── formatters.ts # Number/data formatting
 │   │   └── components/
 │   │       ├── ChatInterface.tsx
-│   │       └── MessageBubble.tsx
+│   │       ├── MessageBubble.tsx
+│   │       ├── DataTable.tsx
+│   │       ├── LineChart.tsx
+│   │       └── BarChart.tsx
 │   └── package.json
 ├── docker-compose.yml
 └── README.md
 ```
 
-## Environment Variables
+## CSS Theme Variables
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Your Anthropic API key |
-| `COMTRADE_API_KEY` | No | UN Comtrade API key for full access |
-| `PORT` | No | Backend port (default: 3001) |
+```css
+:root {
+  /* Platform Primary Blues */
+  --wb-blue-dark: #002244;
+  --imf-blue: #004C97;
+  --fao-blue: #116AAB;
+  --un-blue: #009edb;
+  --owid-blue: #3360a9;
 
-## Known Limitations
+  /* Typography */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Lato', 'Open Sans', sans-serif;
 
-- **FAO API**: May experience intermittent downtime (HTTP 521 errors)
-- **IMF SDMX API**: Some endpoints may be unreachable; WEO works reliably
-- **UN Comtrade**: Preview API limited to 500 records without API key
-- **Rate Limits**: Each data source has its own rate limits
+  /* Semantic Colors */
+  --positive: #00AB51;
+  --negative: #dc3545;
+}
+```
 
 ## Tech Stack
 
@@ -169,6 +169,7 @@ ECONCHAT-M-1/
 - **Backend**: Node.js, Express, TypeScript
 - **AI**: Claude Sonnet via Anthropic API
 - **Data Sources**: REST APIs (World Bank, IMF, FAO, UN Comtrade, OWID)
+- **Fonts**: Google Fonts (Playfair Display, Lato, Open Sans, Roboto)
 
 ## License
 
