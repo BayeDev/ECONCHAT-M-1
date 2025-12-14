@@ -1,6 +1,12 @@
 /**
  * EconChat M-2 - LineChart Component
- * SVG-based line chart with OWID-style direct labeling
+ * SVG-based line chart with OWID-style inline legends and typography
+ *
+ * OWID Specifications:
+ * - Line stroke: 1.2px solid (2.5px hover), Circle markers: 2.5px radius
+ * - Typography: Georgia/Playfair 24px titles, Lato 12px labels
+ * - Inline legend labels at last data point
+ * - Dashed lines for forecasts/projections
  */
 
 import { useMemo, useState } from 'react';
@@ -35,7 +41,9 @@ export interface LineChartProps {
   showLegend?: boolean;
   directLabeling?: boolean;
   height?: number;
-  animate?: boolean;
+  strokeWidth?: number;        // OWID default: 1.2px
+  markerRadius?: number;       // OWID default: 2.5px
+  hoverStrokeWidth?: number;   // OWID default: 2.5px
 }
 
 export default function LineChart({
@@ -50,7 +58,10 @@ export default function LineChart({
   forecastStartYear,
   showLegend = true,
   directLabeling = true,
-  height = 400
+  height = 400,
+  strokeWidth = 1.2,      // OWID spec
+  markerRadius = 2.5,     // OWID spec
+  hoverStrokeWidth = 2.5  // OWID spec
 }: LineChartProps) {
   const [hoveredSeries, setHoveredSeries] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{
@@ -199,9 +210,23 @@ export default function LineChart({
 
   return (
     <div className="chart-container animate-fade-in" style={{ maxWidth: width }}>
-      {/* Title */}
-      {title && <h3 className="chart-title">{title}</h3>}
-      {subtitle && <p className="chart-subtitle">{subtitle}</p>}
+      {/* Title - OWID: Georgia/Playfair 24px, semibold */}
+      {title && (
+        <h3
+          className="chart-title"
+          style={{ fontFamily: "var(--font-display, 'Georgia'), Georgia, serif", fontSize: '24px' }}
+        >
+          {title}
+        </h3>
+      )}
+      {subtitle && (
+        <p
+          className="chart-subtitle"
+          style={{ fontFamily: "var(--font-body, 'Lato'), Lato, sans-serif", fontSize: '14px' }}
+        >
+          {subtitle}
+        </p>
+      )}
 
       {/* SVG Chart */}
       <svg
@@ -337,15 +362,16 @@ export default function LineChart({
 
           return (
             <g key={s.name} opacity={opacity}>
-              {/* Historical line (solid) */}
+              {/* Historical line (solid) - OWID: 1.2px stroke, 2.5px on hover */}
               <path
                 d={generatePath(historicalData)}
                 fill="none"
                 stroke={color}
-                strokeWidth={2.5}
+                strokeWidth={isHovered ? hoverStrokeWidth : strokeWidth}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="animate-fade-in"
+                className="animate-fade-in line-path"
+                style={{ transition: 'stroke-width 200ms ease' }}
               />
 
               {/* Forecast line (dashed) */}
@@ -354,26 +380,29 @@ export default function LineChart({
                   d={generatePath([historicalData[historicalData.length - 1], ...forecastData])}
                   fill="none"
                   stroke={color}
-                  strokeWidth={2}
+                  strokeWidth={isHovered ? hoverStrokeWidth : strokeWidth}
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeDasharray="6,4"
-                  className="animate-fade-in"
+                  className="animate-fade-in line-path"
+                  style={{ transition: 'stroke-width 200ms ease' }}
                 />
               )}
 
-              {/* Data points */}
+              {/* Data points - OWID: 2.5px radius markers */}
               {s.data.map((d, j) => {
                 if (d.y === null) return null;
+                const pointRadius = isHovered ? markerRadius * 1.6 : markerRadius;
                 return (
                   <circle
                     key={j}
                     cx={xScale(d.x)}
                     cy={yScale(d.y)}
-                    r={isHovered ? 5 : 3}
+                    r={pointRadius}
                     fill={color}
                     stroke="white"
-                    strokeWidth={2}
+                    strokeWidth={1.5}
+                    className="data-marker"
                     style={{ transition: 'r 200ms ease' }}
                   />
                 );

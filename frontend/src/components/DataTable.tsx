@@ -1,6 +1,12 @@
 /**
  * EconChat M-2 - DataTable Component
  * Renders data tables with source-specific styling
+ *
+ * Enhanced features:
+ * - FAO flag notation (A, E, I, F, M)
+ * - UN Comtrade coverage quality indicators
+ * - IMF forecast cell highlighting
+ * - Trade flow coloring (exports blue, imports red)
  */
 
 import { useState, useMemo } from 'react';
@@ -9,7 +15,10 @@ import {
   isForecastYear,
   isMissingValue,
   getMissingValueIndicator,
-  type DataSource
+  FAO_FLAG_MEANINGS,
+  getCoverageLevel,
+  type DataSource,
+  type FAOFlag
 } from '../utils/formatters';
 
 export interface Column {
@@ -19,6 +28,8 @@ export interface Column {
   decimals?: number;
   sortable?: boolean;
   width?: string;
+  flagKey?: string;       // Column key containing FAO flag (A, E, I, F, M)
+  coverageKey?: string;   // Column key containing coverage percentage
 }
 
 export interface DataTableProps {
@@ -31,6 +42,8 @@ export interface DataTableProps {
   sortable?: boolean;
   showRowNumbers?: boolean;
   highlightForecasts?: boolean;
+  showFAOFlags?: boolean;       // Show FAO flag superscripts
+  showCoverageIndicator?: boolean;  // Show UN Comtrade coverage dots
   maxHeight?: string;
 }
 
@@ -46,6 +59,8 @@ export default function DataTable({
   sortable = true,
   showRowNumbers = false,
   highlightForecasts = true,
+  showFAOFlags = true,
+  showCoverageIndicator = true,
   maxHeight
 }: DataTableProps) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -109,6 +124,38 @@ export default function DataTable({
     }
   };
 
+  // Format FAO flag superscript
+  const formatFAOFlag = (flag: unknown): string => {
+    if (!flag || !showFAOFlags || source !== 'fao') return '';
+    const flagStr = String(flag).toUpperCase() as FAOFlag;
+    if (flagStr === 'A') return ''; // Official figure, no indicator needed
+
+    const flagInfo = FAO_FLAG_MEANINGS[flagStr];
+    if (!flagInfo) return '';
+
+    const flagClass = flagStr === 'E' ? 'estimate' :
+                      flagStr === 'I' ? 'imputed' :
+                      flagStr === 'F' ? 'calculated' : '';
+
+    return `<sup class="data-flag ${flagClass}" title="${flagInfo.description}">${flagInfo.label}</sup>`;
+  };
+
+  // Format coverage indicator (UN Comtrade)
+  const formatCoverageIndicator = (coverage: unknown): string => {
+    if (!coverage || !showCoverageIndicator || source !== 'comtrade') return '';
+    const coverageNum = typeof coverage === 'number' ? coverage : parseFloat(String(coverage));
+    if (isNaN(coverageNum)) return '';
+
+    const level = getCoverageLevel(coverageNum);
+    const colors: Record<string, string> = {
+      good: 'var(--positive, #00AB51)',
+      medium: 'var(--warning, #FDB714)',
+      poor: 'var(--negative, #dc3545)'
+    };
+
+    return `<span class="coverage-dot" style="background-color: ${colors[level]}" title="Data coverage: ${coverageNum.toFixed(0)}%"></span>`;
+  };
+
   // Format cell value based on column type
   const formatCellValue = (value: unknown, column: Column, row: Record<string, unknown>): string => {
     if (isMissingValue(value)) {
@@ -120,34 +167,54 @@ export default function DataTable({
       typeof yearValue === 'number' &&
       isForecastYear(yearValue);
 
+    let formatted: string;
+
     switch (column.type) {
       case 'number':
-        return formatValue(value as number, {
+        formatted = formatValue(value as number, {
           source,
           decimals: column.decimals ?? 0,
           type: 'number',
           isForecast
         });
+        break;
       case 'percent':
-        return formatValue(value as number, {
+        formatted = formatValue(value as number, {
           source,
           decimals: column.decimals ?? 1,
           type: 'percent',
           isForecast
         });
+        break;
       case 'currency':
       case 'trade':
-        return formatValue(value as number, {
+        formatted = formatValue(value as number, {
           source,
           decimals: column.decimals ?? 1,
           type: column.type,
           isForecast
         });
+        break;
       case 'year':
-        return String(value);
+        formatted = String(value);
+        break;
       default:
-        return String(value);
+        formatted = String(value);
     }
+
+    // Add FAO flag if specified
+    if (column.flagKey) {
+      const flag = row[column.flagKey];
+      formatted += formatFAOFlag(flag);
+    }
+
+    // Add coverage indicator if specified
+    if (column.coverageKey) {
+      const coverage = row[column.coverageKey];
+      formatted = formatCoverageIndicator(coverage) + formatted;
+    }
+
+    return formatted;
   };
 
   // Get cell CSS classes
@@ -251,6 +318,47 @@ export default function DataTable({
           </tbody>
         </table>
       </div>
+
+      {/* FAO Flag Legend */}
+      {source === 'fao' && showFAOFlags && (
+        <div className="fao-flag-legend" style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginTop: '8px',
+          fontSize: '11px',
+          color: 'var(--text-secondary, #6b7280)'
+        }}>
+          <span><sup className="data-flag estimate">E</sup> FAO estimate</span>
+          <span><sup className="data-flag imputed">I</sup> Imputed value</span>
+          <span><sup className="data-flag calculated">F</sup> Calculated aggregate</span>
+          <span>— Missing (structural)</span>
+        </div>
+      )}
+
+      {/* Coverage Legend */}
+      {source === 'comtrade' && showCoverageIndicator && (
+        <div className="coverage-legend" style={{
+          display: 'flex',
+          gap: '16px',
+          marginTop: '8px',
+          fontSize: '11px',
+          color: 'var(--text-secondary, #6b7280)'
+        }}>
+          <span>
+            <span className="coverage-dot" style={{ backgroundColor: 'var(--positive, #00AB51)' }}></span>
+            Good coverage (80%+)
+          </span>
+          <span>
+            <span className="coverage-dot" style={{ backgroundColor: 'var(--warning, #FDB714)' }}></span>
+            Medium (20-80%)
+          </span>
+          <span>
+            <span className="coverage-dot" style={{ backgroundColor: 'var(--negative, #dc3545)' }}></span>
+            Poor (&lt;20%)
+          </span>
+        </div>
+      )}
 
       {/* Source attribution */}
       {sourceAttribution && (

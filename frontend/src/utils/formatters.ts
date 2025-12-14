@@ -371,6 +371,38 @@ export const SOURCE_COLORS: Record<DataSource, { primary: string; light: string 
   owid: { primary: '#3360a9', light: 'rgba(51, 96, 169, 0.1)' }
 };
 
+/**
+ * Full OWID OwidDistinctLines 24-color palette
+ * Designed for maximum distinguishability in multi-series charts
+ */
+export const OWID_DISTINCT_LINES_24 = [
+  '#6D3E91',  // 1. Purple
+  '#C05917',  // 2. Burnt Orange
+  '#58AC8C',  // 3. Teal
+  '#286BBB',  // 4. Blue
+  '#883039',  // 5. Maroon
+  '#BC8E5A',  // 6. Tan
+  '#00295B',  // 7. Navy
+  '#C15065',  // 8. Rose
+  '#18470F',  // 9. Dark Green
+  '#9A5129',  // 10. Brown
+  '#E56E5A',  // 11. Coral
+  '#A2559C',  // 12. Magenta
+  '#38AABA',  // 13. Cyan
+  '#578145',  // 14. Olive
+  '#970046',  // 15. Burgundy
+  '#00847E',  // 16. Teal Dark
+  '#B13507',  // 17. Rust
+  '#4C6A9C',  // 18. Steel Blue
+  '#CF0A66',  // 19. Hot Pink
+  '#00875E',  // 20. Green
+  '#B16214',  // 21. Amber
+  '#8C4569',  // 22. Plum
+  '#3B8E1D',  // 23. Lime
+  '#D73C50'   // 24. Red
+];
+
+// Original 7-color palette for simpler charts
 export const OWID_CATEGORICAL_COLORS = [
   '#3360a9', // Blue
   '#c15065', // Red/Coral
@@ -381,18 +413,66 @@ export const OWID_CATEGORICAL_COLORS = [
   '#883039'  // Dark Red
 ];
 
+// Gapminder/OWID continent colors for scatter plots
+export const CONTINENT_COLORS: Record<string, string> = {
+  'Africa': '#00847E',
+  'Asia': '#C15065',
+  'Europe': '#286BBB',
+  'North America': '#6D3E91',
+  'South America': '#58AC8C',
+  'Oceania': '#BC8E5A'
+};
+
+// UN Comtrade flow colors
+export const TRADE_FLOW_COLORS = {
+  exports: '#286BBB',  // Blue for exports
+  imports: '#C15065',  // Red for imports
+  balance: '#578145'   // Green for trade balance
+};
+
 export const WB_WARM_COLORS = ['#F05023', '#FDB714', '#EB1C2D', '#F78D28'];
 export const WB_COOL_COLORS = ['#009CA7', '#00AB51', '#872B90', '#00A996'];
 
 /**
  * Get color for a data series by index
+ * Uses full 24-color palette for better distinction
  */
-export function getSeriesColor(index: number, palette: 'owid' | 'wb-warm' | 'wb-cool' = 'owid'): string {
-  const colors = palette === 'owid'
-    ? OWID_CATEGORICAL_COLORS
-    : palette === 'wb-warm'
-      ? WB_WARM_COLORS
-      : WB_COOL_COLORS;
+export function getSeriesColor(
+  index: number,
+  palette: 'owid' | 'owid-24' | 'wb-warm' | 'wb-cool' = 'owid-24'
+): string {
+  let colors: string[];
+
+  switch (palette) {
+    case 'owid-24':
+      colors = OWID_DISTINCT_LINES_24;
+      break;
+    case 'owid':
+      colors = OWID_CATEGORICAL_COLORS;
+      break;
+    case 'wb-warm':
+      colors = WB_WARM_COLORS;
+      break;
+    case 'wb-cool':
+      colors = WB_COOL_COLORS;
+      break;
+    default:
+      colors = OWID_DISTINCT_LINES_24;
+  }
 
   return colors[index % colors.length];
+}
+
+/**
+ * Get continent color for scatter/bubble charts (Gapminder-style)
+ */
+export function getContinentColor(continent: string): string {
+  return CONTINENT_COLORS[continent] || '#999999';
+}
+
+/**
+ * Get trade flow color (UN Comtrade style)
+ */
+export function getTradeFlowColor(flowType: 'exports' | 'imports' | 'balance'): string {
+  return TRADE_FLOW_COLORS[flowType];
 }

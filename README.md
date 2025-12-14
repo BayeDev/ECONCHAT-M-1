@@ -10,18 +10,27 @@ An AI-powered chat application that lets economists query economic data using na
 - **Source-specific table styling**: Tables automatically style based on data source (World Bank, IMF, FAO, UN Comtrade, OWID)
 - **Platform color palettes**: Authentic colors matching official data platforms
 - **Typography system**: Playfair Display for headlines, Lato/Open Sans for body text
-- **Responsive charts**: SVG-based line and bar charts with animations
+- **Responsive charts**: SVG-based line, bar, scatter, and area charts with animations
+
+### OWID Visualization Standards
+- **24-color OwidDistinctLines palette**: Maximum distinguishability for multi-series charts
+- **Gapminder-style scatter/bubble charts**: With continent coloring and size legends
+- **Stacked area charts**: For composition over time (energy mix, trade breakdown)
+- **Inline legends**: Direct labeling at line endpoints (OWID style)
+- **Line chart specs**: 1.2px stroke, 2.5px markers, 2.5px hover width
 
 ### Formatting Standards
 - **Number formatting**: Comma thousands separators, scale abbreviations (K, M, B, T)
 - **Missing data conventions**: Platform-specific indicators (.., n/a, ...)
 - **Forecast highlighting**: IMF-style shaded cells for projection data
-- **FAO data flags**: Superscript indicators for estimates, imputations
+- **FAO data flags**: Superscript indicators (E=estimate, I=imputed, F=calculated)
+- **UN Comtrade coverage**: Color-coded quality indicators (green/yellow/red dots)
 
 ### Interactive Features
+- **Chart/Map/Table tabs**: Toggle between visualization modes
+- **Timeline animation controls**: Play/pause/scrub through time-series data
 - **Hover tooltips**: Rich data tooltips on charts and tables
 - **Sortable tables**: Click column headers to sort
-- **Direct labeling**: OWID-style labels on line charts
 - **Smooth animations**: Fade-in and slide-up transitions
 
 ## Features
@@ -128,15 +137,19 @@ ECONCHAT-M-2/
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx
-│   │   ├── index.css         # M-2 visualization theme
+│   │   ├── index.css         # M-2 visualization theme (1000+ lines)
 │   │   ├── utils/
-│   │   │   └── formatters.ts # Number/data formatting
+│   │   │   └── formatters.ts # 24-color palette, formatting utilities
 │   │   └── components/
 │   │       ├── ChatInterface.tsx
 │   │       ├── MessageBubble.tsx
-│   │       ├── DataTable.tsx
-│   │       ├── LineChart.tsx
-│   │       └── BarChart.tsx
+│   │       ├── DataTable.tsx      # FAO flags, coverage indicators
+│   │       ├── LineChart.tsx      # OWID-style inline legends
+│   │       ├── BarChart.tsx       # World Bank/Comtrade style
+│   │       ├── ScatterChart.tsx   # Gapminder bubble charts
+│   │       ├── AreaChart.tsx      # Stacked area/composition
+│   │       ├── ChartTabs.tsx      # Chart/Map/Table navigation
+│   │       └── TimelineControls.tsx # Animation scrubber
 │   └── package.json
 ├── docker-compose.yml
 └── README.md
@@ -152,6 +165,17 @@ ECONCHAT-M-2/
   --fao-blue: #116AAB;
   --un-blue: #009edb;
   --owid-blue: #3360a9;
+
+  /* OWID 24-Color Palette (OwidDistinctLines) */
+  --owid-line-1: #6D3E91;   /* Purple */
+  --owid-line-2: #C05917;   /* Burnt Orange */
+  --owid-line-3: #58AC8C;   /* Teal */
+  /* ... 21 more colors for maximum chart distinction */
+
+  /* Continent Colors (Gapminder-style) */
+  --continent-africa: #00847E;
+  --continent-asia: #C15065;
+  --continent-europe: #286BBB;
 
   /* Typography */
   --font-display: 'Playfair Display', Georgia, serif;
