@@ -247,7 +247,7 @@ export const allTools = [
   },
   {
     name: "owid_get_chart_data",
-    description: "Get data from an Our World in Data chart. Common charts: life-expectancy, gdp-per-capita-worldbank, share-of-population-in-extreme-poverty, human-development-index, co2-emissions-per-capita, literacy-rate-adult-total",
+    description: "Get data from an Our World in Data chart. Common charts: life-expectancy, gdp-per-capita-worldbank, share-of-population-in-extreme-poverty, human-development-index, co2-emissions-per-capita, literacy-rate-adult-total. For world/global maps, set for_map=true to get all countries for a single year.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -261,7 +261,11 @@ export const allTools = [
           description: "Country names (e.g., ['Japan', 'United States', 'Bangladesh'])"
         },
         start_year: { type: "number" },
-        end_year: { type: "number" }
+        end_year: { type: "number" },
+        for_map: {
+          type: "boolean",
+          description: "Set to true when user wants a world/global map. Returns all countries for a single year instead of time series."
+        }
       },
       required: ["chart_slug"]
     }

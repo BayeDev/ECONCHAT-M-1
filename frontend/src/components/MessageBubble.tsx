@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { type DataSource } from '../utils/formatters';
 import LineChart from './LineChart';
 import BarChart from './BarChart';
+import MapChart from './MapChart';
 
 // Chart data types
 interface ChartDataPoint {
@@ -19,9 +20,18 @@ interface ChartSeries {
   data: ChartDataPoint[];
 }
 
+// Map data types
+interface MapDataPoint {
+  entity: string;
+  code?: string;
+  value: number | null;
+}
+
 interface ChartData {
-  type: 'line' | 'bar' | 'scatter' | 'area';
+  type: 'line' | 'bar' | 'scatter' | 'area' | 'map';
   series: ChartSeries[];
+  mapData?: MapDataPoint[];
+  year?: number;
   title?: string;
   xLabel?: string;
   yLabel?: string;
@@ -33,6 +43,7 @@ interface Message {
   content: string;
   sources?: string[];
   chartData?: ChartData;
+  charts?: ChartData[];  // Multiple charts support
   timestamp: Date;
 }
 
@@ -229,8 +240,52 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           dangerouslySetInnerHTML={{ __html: formattedContent }}
         />
 
-        {/* Chart visualization */}
-        {message.chartData && message.chartData.series.length > 0 && (
+        {/* Chart visualizations - supports multiple charts including maps */}
+        {message.charts && message.charts.length > 0 && (
+          <div className="mt-4 space-y-6">
+            {message.charts.map((chart, index) => (
+              <div key={index} className="chart-wrapper">
+                {chart.type === 'line' && (
+                  <LineChart
+                    series={chart.series.map(s => ({
+                      name: s.name,
+                      data: s.data.map(d => ({ x: d.x, y: d.y }))
+                    }))}
+                    title={chart.title}
+                    xLabel={chart.xLabel}
+                    yLabel={chart.yLabel}
+                    sourceAttribution={index === message.charts!.length - 1 ? message.sources?.join(', ') : undefined}
+                    directLabeling={true}
+                    height={350}
+                  />
+                )}
+                {chart.type === 'bar' && (
+                  <BarChart
+                    data={chart.series[0]?.data.map((d) => ({
+                      label: String(d.x),
+                      value: d.y
+                    })) || []}
+                    title={chart.title}
+                    sourceAttribution={index === message.charts!.length - 1 ? message.sources?.join(', ') : undefined}
+                    orientation="vertical"
+                    height={350}
+                  />
+                )}
+                {chart.type === 'map' && chart.mapData && (
+                  <MapChart
+                    data={chart.mapData}
+                    title={chart.title}
+                    year={chart.year}
+                    valueLabel={chart.yLabel}
+                    sourceAttribution={index === message.charts!.length - 1 ? message.sources?.join(', ') : undefined}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Fallback for single chartData (backward compatible) */}
+        {!message.charts?.length && message.chartData && (message.chartData.series.length > 0 || message.chartData.mapData?.length) && (
           <div className="mt-4">
             {message.chartData.type === 'line' && (
               <LineChart
@@ -256,6 +311,15 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 sourceAttribution={message.sources?.join(', ')}
                 orientation="vertical"
                 height={350}
+              />
+            )}
+            {message.chartData.type === 'map' && message.chartData.mapData && (
+              <MapChart
+                data={message.chartData.mapData}
+                title={message.chartData.title}
+                year={message.chartData.year}
+                valueLabel={message.chartData.yLabel}
+                sourceAttribution={message.sources?.join(', ')}
               />
             )}
           </div>

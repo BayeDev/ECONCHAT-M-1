@@ -33,7 +33,7 @@ app.post('/api/chat', async (req, res) => {
     const history = sessions.get(sessionId) || [];
 
     // Call Claude with tools
-    const { response, toolsUsed, chartData } = await chat(message, history);
+    const { response, toolsUsed, chartData, charts } = await chat(message, history);
 
     // Update history (keep last 20 messages to manage context size)
     history.push({ role: 'user', content: message });
@@ -43,13 +43,14 @@ app.post('/api/chat', async (req, res) => {
     // Get human-readable source names
     const sources = getSourcesFromTools(toolsUsed);
 
-    console.log(`[Response] Sources: ${sources.join(', ')}, Length: ${response.length}, ChartData: ${chartData ? 'yes' : 'no'}`);
+    console.log(`[Response] Sources: ${sources.join(', ')}, Length: ${response.length}, Charts: ${charts?.length || 0}`);
 
     res.json({
       response,
       toolsUsed,
       sources,
-      chartData
+      chartData,
+      charts
     });
   } catch (error) {
     console.error('[Error]', error);

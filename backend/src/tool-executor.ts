@@ -456,28 +456,23 @@ export async function executeTool(toolName: string, params: Record<string, unkno
       const countries = params.countries as string[] | undefined;
       const startYear = params.start_year as number | undefined;
       const endYear = params.end_year as number | undefined;
+      const forMap = params.for_map as boolean | undefined;
 
       let url = `https://ourworldindata.org/grapher/${chartSlug}.csv`;
 
-      const queryParams: string[] = [];
+      // Only add csvType=filtered for country filtering (the API doesn't filter by time)
       if (countries?.length) {
-        queryParams.push('csvType=filtered');
-        queryParams.push(`country=${countries.map(c => '~' + c).join('')}`);
-      }
-      if (startYear && endYear) {
-        queryParams.push(`time=${startYear}..${endYear}`);
-      }
-      if (queryParams.length) {
-        url += '?' + queryParams.join('&');
+        url += `?csvType=filtered&country=${countries.map(c => '~' + c).join('')}`;
       }
 
-      const response = await axios.get(url, { timeout: 20000 });
+      console.log(`[OWID] Fetching: ${url}`);
+      const response = await axios.get(url, { timeout: 30000 });
 
       // Parse CSV
       const lines = (response.data as string).split('\n');
       const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
 
-      const data = lines.slice(1)
+      let data = lines.slice(1)
         .filter(line => line.trim())
         .map(line => {
           const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
@@ -491,6 +486,32 @@ export async function executeTool(toolName: string, params: Record<string, unkno
           return row;
         });
 
+      // For map visualization: filter to most recent year, return one record per country
+      if (forMap && !countries?.length) {
+        // Find the target year (specified or most recent available)
+        const targetYear = endYear || startYear || Math.max(...data.map(r => r.Year as number).filter(y => !isNaN(y)));
+        console.log(`[OWID] Map mode - filtering to year: ${targetYear}`);
+
+        // Filter to just the target year
+        data = data.filter(r => r.Year === targetYear);
+        console.log(`[OWID] After year filter: ${data.length} records`);
+
+        // Return all countries for the map (no arbitrary limit)
+        return data;
+      }
+
+      // For time series queries with year range filter
+      if (startYear || endYear) {
+        const minYear = startYear || 0;
+        const maxYear = endYear || 9999;
+        data = data.filter(r => {
+          const year = r.Year as number;
+          return year >= minYear && year <= maxYear;
+        });
+      }
+
+      // For time series, limit to 500 records
+      console.log(`[OWID] Parsed ${data.length} records, returning ${Math.min(data.length, 500)}`);
       return data.slice(0, 500);
     }
 

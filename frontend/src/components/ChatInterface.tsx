@@ -12,9 +12,18 @@ interface ChartSeries {
   data: ChartDataPoint[];
 }
 
+// Map data types
+interface MapDataPoint {
+  entity: string;
+  code?: string;
+  value: number | null;
+}
+
 interface ChartData {
-  type: 'line' | 'bar' | 'scatter' | 'area';
+  type: 'line' | 'bar' | 'scatter' | 'area' | 'map';
   series: ChartSeries[];
+  mapData?: MapDataPoint[];
+  year?: number;
   title?: string;
   xLabel?: string;
   yLabel?: string;
@@ -26,6 +35,7 @@ interface Message {
   content: string;
   sources?: string[];
   chartData?: ChartData;
+  charts?: ChartData[];  // Multiple charts support
   timestamp: Date;
 }
 
@@ -56,12 +66,47 @@ const EXAMPLE_QUERIES = [
   }
 ];
 
+// Storage key for persisting messages
+const STORAGE_KEY = 'econchat_messages';
+
+// Helper to serialize messages for localStorage (handles Date objects)
+function serializeMessages(messages: Message[]): string {
+  return JSON.stringify(messages.map(m => ({
+    ...m,
+    timestamp: m.timestamp.toISOString()
+  })));
+}
+
+// Helper to deserialize messages from localStorage
+function deserializeMessages(json: string): Message[] {
+  try {
+    const parsed = JSON.parse(json);
+    return parsed.map((m: Record<string, unknown>) => ({
+      ...m,
+      timestamp: new Date(m.timestamp as string)
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export default function ChatInterface({ sessionId }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  // Initialize messages from localStorage
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const stored = localStorage.getItem(`${STORAGE_KEY}_${sessionId}`);
+    return stored ? deserializeMessages(stored) : [];
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Persist messages to localStorage whenever they change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(`${STORAGE_KEY}_${sessionId}`, serializeMessages(messages));
+    }
+  }, [messages, sessionId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,6 +149,7 @@ export default function ChatInterface({ sessionId }: ChatInterfaceProps) {
         content: data.response,
         sources: data.sources,
         chartData: data.chartData,
+        charts: data.charts,
         timestamp: new Date()
       };
 
@@ -129,8 +175,34 @@ export default function ChatInterface({ sessionId }: ChatInterfaceProps) {
     }
   };
 
+  const clearChat = () => {
+    setMessages([]);
+    localStorage.removeItem(`${STORAGE_KEY}_${sessionId}`);
+    // Also reset backend session
+    fetch('/api/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    }).catch(console.error);
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-160px)]">
+      {/* Clear chat button - only show when there are messages */}
+      {messages.length > 0 && (
+        <div className="flex justify-end px-4 pt-2">
+          <button
+            onClick={clearChat}
+            className="text-xs text-gray-400 hover:text-red-500 transition flex items-center gap-1"
+            title="Clear conversation"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Clear chat
+          </button>
+        </div>
+      )}
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
