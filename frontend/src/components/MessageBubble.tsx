@@ -1,16 +1,38 @@
 /**
  * EconChat M-2 - MessageBubble Component
- * Enhanced message display with source-specific styling
+ * Enhanced message display with source-specific styling and chart rendering
  */
 
 import { useMemo } from 'react';
 import { type DataSource } from '../utils/formatters';
+import LineChart from './LineChart';
+import BarChart from './BarChart';
+
+// Chart data types
+interface ChartDataPoint {
+  x: number;
+  y: number | null;
+}
+
+interface ChartSeries {
+  name: string;
+  data: ChartDataPoint[];
+}
+
+interface ChartData {
+  type: 'line' | 'bar' | 'scatter' | 'area';
+  series: ChartSeries[];
+  title?: string;
+  xLabel?: string;
+  yLabel?: string;
+}
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   sources?: string[];
+  chartData?: ChartData;
   timestamp: Date;
 }
 
@@ -206,6 +228,38 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           }}
           dangerouslySetInnerHTML={{ __html: formattedContent }}
         />
+
+        {/* Chart visualization */}
+        {message.chartData && message.chartData.series.length > 0 && (
+          <div className="mt-4">
+            {message.chartData.type === 'line' && (
+              <LineChart
+                series={message.chartData.series.map(s => ({
+                  name: s.name,
+                  data: s.data.map(d => ({ x: d.x, y: d.y }))
+                }))}
+                title={message.chartData.title}
+                xLabel={message.chartData.xLabel}
+                yLabel={message.chartData.yLabel}
+                sourceAttribution={message.sources?.join(', ')}
+                directLabeling={true}
+                height={350}
+              />
+            )}
+            {message.chartData.type === 'bar' && (
+              <BarChart
+                data={message.chartData.series[0]?.data.map((d) => ({
+                  label: String(d.x),
+                  value: d.y
+                })) || []}
+                title={message.chartData.title}
+                sourceAttribution={message.sources?.join(', ')}
+                orientation="vertical"
+                height={350}
+              />
+            )}
+          </div>
+        )}
 
         {/* Source tags with platform-specific styling */}
         {message.sources && message.sources.length > 0 && (

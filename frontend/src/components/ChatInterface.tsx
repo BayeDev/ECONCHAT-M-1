@@ -1,11 +1,31 @@
 import { useState, useRef, useEffect } from 'react';
 import MessageBubble from './MessageBubble';
 
+// Chart data types matching backend
+interface ChartDataPoint {
+  x: number;
+  y: number | null;
+}
+
+interface ChartSeries {
+  name: string;
+  data: ChartDataPoint[];
+}
+
+interface ChartData {
+  type: 'line' | 'bar' | 'scatter' | 'area';
+  series: ChartSeries[];
+  title?: string;
+  xLabel?: string;
+  yLabel?: string;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   sources?: string[];
+  chartData?: ChartData;
   timestamp: Date;
 }
 
@@ -83,6 +103,7 @@ export default function ChatInterface({ sessionId }: ChatInterfaceProps) {
         role: 'assistant',
         content: data.response,
         sources: data.sources,
+        chartData: data.chartData,
         timestamp: new Date()
       };
 

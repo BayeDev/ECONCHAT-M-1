@@ -52,9 +52,29 @@ interface Message {
   content: string | Anthropic.ContentBlock[];
 }
 
+// Structure for chart-ready time series data
+export interface ChartDataPoint {
+  x: number;  // year
+  y: number | null;
+}
+
+export interface ChartSeries {
+  name: string;
+  data: ChartDataPoint[];
+}
+
+export interface ChartData {
+  type: 'line' | 'bar' | 'scatter' | 'area';
+  series: ChartSeries[];
+  title?: string;
+  xLabel?: string;
+  yLabel?: string;
+}
+
 export interface ChatResponse {
   response: string;
   toolsUsed: string[];
+  chartData?: ChartData;  // Structured data for visualization
 }
 
 export async function chat(
@@ -70,6 +90,7 @@ export async function chat(
   ];
 
   const toolsUsed: string[] = [];
+  const collectedData: Array<{ tool: string; result: unknown }> = []; // Collect tool results for charts
 
   // Initial Claude call
   let response = await anthropic.messages.create({
@@ -105,6 +126,9 @@ export async function chat(
         const result = await executeTool(toolUse.name, toolUse.input as Record<string, unknown>);
         const resultStr = JSON.stringify(result, null, 2);
         console.log(`[Tool Result] ${toolUse.name}: ${resultStr.substring(0, 200)}...`);
+
+        // Collect data for chart generation
+        collectedData.push({ tool: toolUse.name, result });
 
         toolResults.push({
           type: 'tool_result',
@@ -163,10 +187,175 @@ export async function chat(
     (block): block is Anthropic.TextBlock => block.type === 'text'
   );
 
+  // Try to extract chart data from collected tool results
+  const chartData = extractChartData(collectedData, userMessage);
+
   return {
     response: textContent?.text || 'No response generated',
-    toolsUsed: [...new Set(toolsUsed)] // Deduplicate
+    toolsUsed: [...new Set(toolsUsed)], // Deduplicate
+    chartData
   };
+}
+
+// Extract chart-ready data from tool results
+function extractChartData(
+  collectedData: Array<{ tool: string; result: unknown }>,
+  userMessage: string
+): ChartData | undefined {
+  // Look for time-series data from OWID, World Bank, or IMF
+  for (const { tool, result } of collectedData) {
+    if (!result || typeof result !== 'object') continue;
+
+    // Handle OWID data format
+    if (tool === 'owid_get_data' && Array.isArray(result)) {
+      const chartData = parseOWIDData(result, userMessage);
+      if (chartData) return chartData;
+    }
+
+    // Handle World Bank data format
+    if (tool === 'wb_get_indicator' && Array.isArray(result)) {
+      const chartData = parseWorldBankData(result, userMessage);
+      if (chartData) return chartData;
+    }
+
+    // Handle IMF data format
+    if (tool === 'imf_get_indicator') {
+      const chartData = parseIMFData(result, userMessage);
+      if (chartData) return chartData;
+    }
+  }
+
+  return undefined;
+}
+
+// Parse OWID data into chart format
+function parseOWIDData(data: unknown[], userMessage: string): ChartData | undefined {
+  if (!data || data.length === 0) return undefined;
+
+  // Group by entity (country/region)
+  const seriesMap = new Map<string, ChartDataPoint[]>();
+
+  for (const item of data) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+
+    const entity = record.entity || record.Entity || record.country;
+    const year = record.year || record.Year;
+    const value = record.value ?? record.Value ?? Object.values(record).find(v => typeof v === 'number' && v > 1000);
+
+    if (typeof entity === 'string' && typeof year === 'number') {
+      if (!seriesMap.has(entity)) {
+        seriesMap.set(entity, []);
+      }
+      seriesMap.get(entity)!.push({
+        x: year,
+        y: typeof value === 'number' ? value : null
+      });
+    }
+  }
+
+  if (seriesMap.size === 0) return undefined;
+
+  // Convert to series array
+  const series: ChartSeries[] = [];
+  for (const [name, points] of seriesMap) {
+    // Sort by year
+    points.sort((a, b) => a.x - b.x);
+    series.push({ name, data: points });
+  }
+
+  // Determine chart title from user message
+  const title = userMessage.length > 60 ? userMessage.substring(0, 60) + '...' : userMessage;
+
+  return {
+    type: 'line',
+    series,
+    title,
+    xLabel: 'Year',
+    yLabel: 'Value'
+  };
+}
+
+// Parse World Bank data into chart format
+function parseWorldBankData(data: unknown[], userMessage: string): ChartData | undefined {
+  if (!data || data.length === 0) return undefined;
+
+  // Group by country
+  const seriesMap = new Map<string, ChartDataPoint[]>();
+
+  for (const item of data) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+
+    const country = record.country || record.countryiso3code;
+    const year = record.date || record.year;
+    const value = record.value;
+
+    if (country && year) {
+      const countryName = typeof country === 'object' ? (country as Record<string, unknown>).value : country;
+      const yearNum = typeof year === 'string' ? parseInt(year) : year;
+
+      if (typeof countryName === 'string' && typeof yearNum === 'number') {
+        if (!seriesMap.has(countryName)) {
+          seriesMap.set(countryName, []);
+        }
+        seriesMap.get(countryName)!.push({
+          x: yearNum,
+          y: typeof value === 'number' ? value : null
+        });
+      }
+    }
+  }
+
+  if (seriesMap.size === 0) return undefined;
+
+  const series: ChartSeries[] = [];
+  for (const [name, points] of seriesMap) {
+    points.sort((a, b) => a.x - b.x);
+    series.push({ name, data: points });
+  }
+
+  return {
+    type: 'line',
+    series,
+    title: userMessage.length > 60 ? userMessage.substring(0, 60) + '...' : userMessage,
+    xLabel: 'Year',
+    yLabel: 'Value'
+  };
+}
+
+// Parse IMF data into chart format
+function parseIMFData(data: unknown, userMessage: string): ChartData | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+
+  const record = data as Record<string, unknown>;
+
+  // IMF data often comes with country and values object
+  if (record.values && typeof record.values === 'object') {
+    const values = record.values as Record<string, number>;
+    const country = (record.country || record.ISO || 'Country') as string;
+
+    const points: ChartDataPoint[] = [];
+    for (const [year, value] of Object.entries(values)) {
+      const yearNum = parseInt(year);
+      if (!isNaN(yearNum)) {
+        points.push({ x: yearNum, y: typeof value === 'number' ? value : null });
+      }
+    }
+
+    if (points.length > 0) {
+      points.sort((a, b) => a.x - b.x);
+      return {
+        type: 'line',
+        series: [{ name: country, data: points }],
+        title: userMessage.length > 60 ? userMessage.substring(0, 60) + '...' : userMessage,
+        xLabel: 'Year',
+        yLabel: 'Value'
+      };
+    }
+  }
+
+  return undefined;
 }
 
 // Extract source prefixes from tool names
