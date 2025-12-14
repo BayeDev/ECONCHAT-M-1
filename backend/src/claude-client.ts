@@ -206,8 +206,8 @@ function extractChartData(
   for (const { tool, result } of collectedData) {
     if (!result || typeof result !== 'object') continue;
 
-    // Handle OWID data format
-    if (tool === 'owid_get_data' && Array.isArray(result)) {
+    // Handle OWID data formats (multiple tool names)
+    if ((tool === 'owid_get_data' || tool === 'owid_get_chart_data') && Array.isArray(result)) {
       const chartData = parseOWIDData(result, userMessage);
       if (chartData) return chartData;
     }
@@ -234,14 +234,32 @@ function parseOWIDData(data: unknown[], userMessage: string): ChartData | undefi
 
   // Group by entity (country/region)
   const seriesMap = new Map<string, ChartDataPoint[]>();
+  let yLabel = 'Value';
 
   for (const item of data) {
     if (!item || typeof item !== 'object') continue;
     const record = item as Record<string, unknown>;
 
-    const entity = record.entity || record.Entity || record.country;
-    const year = record.year || record.Year;
-    const value = record.value ?? record.Value ?? Object.values(record).find(v => typeof v === 'number' && v > 1000);
+    // Handle various entity field names
+    const entity = record.Entity || record.entity || record.country || record.Country;
+    // Handle various year field names
+    const year = record.Year || record.year;
+
+    // Find the value field - it could be named anything (e.g., "Period life expectancy at birth")
+    // Skip known non-value fields and find the numeric value
+    let value: number | null = null;
+    const skipFields = ['Entity', 'entity', 'Country', 'country', 'Year', 'year', 'Code', 'code', 'ISO', 'iso'];
+
+    for (const [key, val] of Object.entries(record)) {
+      if (!skipFields.includes(key) && typeof val === 'number') {
+        value = val;
+        // Use the field name as y-axis label (clean it up)
+        if (yLabel === 'Value') {
+          yLabel = key;
+        }
+        break;
+      }
+    }
 
     if (typeof entity === 'string' && typeof year === 'number') {
       if (!seriesMap.has(entity)) {
@@ -249,7 +267,7 @@ function parseOWIDData(data: unknown[], userMessage: string): ChartData | undefi
       }
       seriesMap.get(entity)!.push({
         x: year,
-        y: typeof value === 'number' ? value : null
+        y: value
       });
     }
   }
@@ -272,7 +290,7 @@ function parseOWIDData(data: unknown[], userMessage: string): ChartData | undefi
     series,
     title,
     xLabel: 'Year',
-    yLabel: 'Value'
+    yLabel
   };
 }
 
