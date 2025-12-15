@@ -554,13 +554,27 @@ export async function routedChat(
     totalOutputTokens += toolResult.outputTokens;
 
     // For Tier 2, Gemini already generated the response with tools
-    // For Tier 1, pass the data to Claude Opus for complex analysis
-    if (tier === 1 && toolResult.collectedData.length > 0) {
-      const context = toolResult.response
-        ? `Based on the following data and analysis:\n\n${toolResult.response}`
-        : undefined;
+    // For Tier 1, pass the RAW DATA to Claude Opus for complex analysis
+    if (tier === 1) {
+      // Build context from raw tool data for Opus to analyze
+      let dataContext = '';
+
+      if (toolResult.collectedData.length > 0) {
+        dataContext = 'RAW DATA FROM SOURCES:\n\n';
+        for (const { tool, result } of toolResult.collectedData) {
+          dataContext += `[${tool}]:\n${JSON.stringify(result, null, 2)}\n\n`;
+        }
+      }
+
+      // Also include Gemini's preliminary analysis as reference
+      if (toolResult.response) {
+        dataContext += `\nPRELIMINARY ANALYSIS:\n${toolResult.response}`;
+      }
+
+      const context = dataContext || undefined;
 
       try {
+        console.log(`[Router] Passing data to Claude Opus for Tier 1 analysis...`);
         const result = await generateWithClaudeOpus(userMessage, context);
         response = result.response;
         totalInputTokens += result.inputTokens;
