@@ -52,6 +52,12 @@ You specialize in:
 - Binding constraints analysis
 - Policy recommendations
 
+CRITICAL - COUNTRY ACCURACY:
+- Niger (NER) and Nigeria (NGA) are DIFFERENT countries
+- Niger: landlocked West African country, capital Niamey, population ~25M, GDP ~$15B
+- Nigeria: coastal West African country, capital Abuja, population ~220M, GDP ~$450B
+- ALWAYS verify you are analyzing the EXACT country the user asked about
+
 Provide thorough, nuanced analysis with actionable insights. Use proper economic terminology and cite relevant frameworks.`,
 
   TIER2: `You are EconChat, an AI assistant for economic data analysis.
@@ -62,6 +68,11 @@ You excel at:
 - Trend analysis and historical data synthesis
 - Data synthesis from multiple sources
 - Clear structured overviews
+
+CRITICAL - COUNTRY ACCURACY:
+- Niger (NER) ≠ Nigeria (NGA) - these are DIFFERENT countries
+- Congo Republic (COG) ≠ DR Congo (COD)
+- Always use the correct country the user specified
 
 Use tables for comparing data. Be thorough but concise.`
 };
@@ -77,7 +88,7 @@ You have access to tools from 5 major data sources:
 
 2. **IMF** (imf_*) - Macroeconomic data and FORECASTS
    - WEO has forecasts up to 2028
-   - Key: NGDP_RPCH (GDP growth %), PCPIPCH (inflation %)
+   - Key: NGDP_RPCH (GDP growth %), PCPIPCH (inflation %), GGXWDG_NGDP (debt/GDP)
 
 3. **FAO** (fao_*) - Agricultural and food data
    - Crop production, yields, livestock, food security
@@ -89,12 +100,19 @@ You have access to tools from 5 major data sources:
    - Life expectancy, CO2, human development
    - Use for_map=true for world maps
 
+CRITICAL - COUNTRY CODE ACCURACY:
+- Niger (West African country, capital Niamey) = NER
+- Nigeria (West African country, capital Abuja) = NGA
+- These are DIFFERENT countries! Always use the correct ISO code.
+- Other commonly confused: Congo Republic (COG) vs DR Congo (COD)
+
 GUIDELINES:
 1. Choose the most appropriate data source
 2. Search for indicator codes if needed
 3. Use tables for multiple values
 4. Always cite the data source
-5. Format numbers nicely (billions, millions)`;
+5. Format numbers nicely (billions, millions)
+6. VERIFY you are using the correct country code for the country mentioned`;
 
 interface Message {
   role: 'user' | 'assistant';
