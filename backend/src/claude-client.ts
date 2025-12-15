@@ -216,7 +216,7 @@ function getChartFingerprint(chart: ChartData): string {
   // Use only yLabel (indicator name) as fingerprint
   // This prevents duplicates when same indicator is fetched multiple times
   // Normalize by removing special characters and lowercasing
-  return chart.yLabel.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return (chart.yLabel || 'unknown').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 // Extract ALL chart data from tool results (supports multiple charts)
