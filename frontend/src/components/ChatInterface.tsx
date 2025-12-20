@@ -222,10 +222,10 @@ export default function ChatInterface({ sessionId }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-160px)]">
+    <div className="flex flex-col h-[calc(100vh-180px)] min-h-[500px]">
       {/* Clear chat button - only show when there are messages */}
       {messages.length > 0 && (
-        <div className="flex justify-end px-4 pt-2">
+        <div className="flex-shrink-0 flex justify-end px-4 pt-2">
           <button
             onClick={clearChat}
             className="text-xs text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition flex items-center gap-1"
@@ -240,49 +240,48 @@ export default function ChatInterface({ sessionId }: ChatInterfaceProps) {
       )}
 
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full py-8 animate-fade-in">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-wb-blue-100 dark:bg-wb-blue-900/30 rounded-2xl mb-4">
+          <div className="flex flex-col items-center justify-center min-h-full py-6 animate-fade-in">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-14 h-14 bg-wb-blue-100 dark:bg-wb-blue-900/30 rounded-2xl mb-3">
                 <svg className="w-8 h-8 text-wb-blue-600 dark:text-wb-accent-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M3 3v18h18"/>
                   <path d="M7 16l4-8 4 6 3-4"/>
                 </svg>
               </div>
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-slate-100 mb-2">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-slate-100 mb-2">
                 Ask me about economic data
               </h2>
-              <p className="text-gray-500 dark:text-slate-400 max-w-md">
+              <p className="text-sm text-gray-500 dark:text-slate-400 max-w-md">
                 I can query data from World Bank, IMF, FAO, UN Comtrade, and Our World in Data.
-                Try one of the examples below or ask your own question.
               </p>
-              <p className="text-xs text-gray-400 dark:text-slate-500 mt-2">
-                Press <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-gray-600 dark:text-slate-300 font-mono">⌘K</kbd> to focus
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                Press <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-gray-600 dark:text-slate-300 font-mono text-[10px]">⌘K</kbd> to focus
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-2xl w-full px-2">
               {EXAMPLE_QUERIES.map((example, i) => (
                 <button
                   key={i}
                   onClick={() => sendMessage(example.text)}
                   className={cn(
-                    "flex items-start gap-3 text-left px-4 py-3 rounded-xl transition-all duration-200",
+                    "flex items-start gap-2.5 text-left px-3 py-2.5 rounded-lg transition-all duration-200",
                     "bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700",
                     "hover:bg-wb-blue-50 dark:hover:bg-wb-blue-900/20 hover:border-wb-blue-300 dark:hover:border-wb-blue-700",
                     "hover:shadow-md hover:-translate-y-0.5",
                     "focus:outline-none focus:ring-2 focus:ring-wb-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
                   )}
                 >
-                  <span className="text-2xl" role="img" aria-label={example.category}>
+                  <span className="text-xl flex-shrink-0" role="img" aria-label={example.category}>
                     {example.icon}
                   </span>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <span className="text-xs font-medium text-wb-blue-600 dark:text-wb-accent-400 uppercase tracking-wide">
                       {example.category}
                     </span>
-                    <p className="text-sm text-gray-700 dark:text-slate-300 mt-0.5">
+                    <p className="text-sm text-gray-700 dark:text-slate-300 mt-0.5 line-clamp-2">
                       {example.text}
                     </p>
                   </div>
@@ -311,7 +310,7 @@ export default function ChatInterface({ sessionId }: ChatInterfaceProps) {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 transition-colors">
+      <div className="flex-shrink-0 border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 transition-colors">
         <div className="max-w-3xl mx-auto flex gap-3">
           <div className="flex-1 relative">
             <input

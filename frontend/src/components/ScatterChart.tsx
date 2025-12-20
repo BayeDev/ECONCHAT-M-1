@@ -69,11 +69,20 @@ export default function ScatterChart({
     point: BubbleDataPoint;
   } | null>(null);
 
-  // Chart dimensions
-  const width = 720;
-  const margin = { top: 40, right: 120, bottom: 60, left: 80 };
+  // Chart dimensions - use smaller viewBox so text appears larger when scaled
+  const width = 420;
+  const chartHeight = 300;
+  const margin = { top: 30, right: 80, bottom: 55, left: 65 };
   const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
+  const innerHeight = chartHeight - margin.top - margin.bottom;
+
+  // Font sizes - larger to compensate for SVG scaling
+  const fontSize = {
+    axis: 14,
+    axisTitle: 13,
+    bubbleLabel: 13,
+    legend: 13
+  };
 
   // Calculate scales
   const { xScale, yScale, sizeScale, xDomain, yDomain } = useMemo(() => {
@@ -204,20 +213,17 @@ export default function ScatterChart({
 
   return (
     <div className="chart-container animate-fade-in" style={{ maxWidth: width }}>
-      {/* Title - OWID: Georgia/Playfair 24px */}
+      {/* Title */}
       {title && (
         <h3
-          className="chart-title"
-          style={{ fontFamily: "var(--font-display), Georgia, serif", fontSize: '24px' }}
+          className="chart-title text-base font-semibold text-gray-800 dark:text-slate-200"
+          style={{ fontFamily: "var(--font-body, 'Inter'), Inter, sans-serif" }}
         >
           {title}
         </h3>
       )}
       {subtitle && (
-        <p
-          className="chart-subtitle"
-          style={{ fontFamily: "var(--font-body), Lato, sans-serif", fontSize: '14px' }}
-        >
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
           {subtitle}
         </p>
       )}
@@ -225,8 +231,10 @@ export default function ScatterChart({
       {/* SVG Chart */}
       <svg
         width="100%"
-        viewBox={`0 0 ${width} ${height}`}
-        className="overflow-visible"
+        viewBox={`0 0 ${width} ${chartHeight}`}
+        className="overflow-visible chart-svg"
+        style={{ maxHeight: height }}
+        data-chart="true"
         onMouseLeave={() => {
           setHoveredPoint(null);
           setTooltip(null);
@@ -241,7 +249,7 @@ export default function ScatterChart({
               x2={width - margin.right}
               y1={yScale(tick)}
               y2={yScale(tick)}
-              stroke="var(--grid-line, #e5e7eb)"
+              stroke="var(--grid-line)"
               strokeWidth={1}
             />
           ))}
@@ -251,8 +259,8 @@ export default function ScatterChart({
               x1={xScale(tick)}
               x2={xScale(tick)}
               y1={margin.top}
-              y2={height - margin.bottom}
-              stroke="var(--grid-line, #e5e7eb)"
+              y2={chartHeight - margin.bottom}
+              stroke="var(--grid-line)"
               strokeWidth={1}
             />
           ))}
@@ -264,33 +272,33 @@ export default function ScatterChart({
             x1={margin.left}
             x2={margin.left}
             y1={margin.top}
-            y2={height - margin.bottom}
-            stroke="var(--border-light, #d1d5db)"
+            y2={chartHeight - margin.bottom}
+            stroke="var(--border-light)"
             strokeWidth={1}
           />
           {yTicks.map((tick, i) => (
             <text
               key={i}
-              x={margin.left - 10}
+              x={margin.left - 8}
               y={yScale(tick)}
               textAnchor="end"
               dominantBaseline="middle"
-              fontSize="12"
-              fontFamily="var(--font-body), Lato, sans-serif"
-              fill="var(--text-secondary, #6b7280)"
+              fontSize={fontSize.axis}
+              fontWeight="500"
+              fill="var(--text-secondary)"
             >
               {formatYValue(tick)}
             </text>
           ))}
           {yLabel && (
             <text
-              x={-height / 2}
-              y={20}
+              x={-(margin.top + innerHeight / 2)}
+              y={12}
               transform="rotate(-90)"
               textAnchor="middle"
-              fontSize="13"
-              fontFamily="var(--font-body), Lato, sans-serif"
-              fill="var(--text-secondary, #6b7280)"
+              fontSize={fontSize.axisTitle}
+              fontWeight="500"
+              fill="var(--text-secondary)"
             >
               {yLabel}
             </text>
@@ -302,20 +310,20 @@ export default function ScatterChart({
           <line
             x1={margin.left}
             x2={width - margin.right}
-            y1={height - margin.bottom}
-            y2={height - margin.bottom}
-            stroke="var(--border-light, #d1d5db)"
+            y1={chartHeight - margin.bottom}
+            y2={chartHeight - margin.bottom}
+            stroke="var(--border-light)"
             strokeWidth={1}
           />
           {xTicks.map((tick, i) => (
             <text
               key={i}
               x={xScale(tick)}
-              y={height - margin.bottom + 20}
+              y={chartHeight - margin.bottom + 18}
               textAnchor="middle"
-              fontSize="12"
-              fontFamily="var(--font-body), Lato, sans-serif"
-              fill="var(--text-secondary, #6b7280)"
+              fontSize={fontSize.axis}
+              fontWeight="500"
+              fill="var(--text-secondary)"
             >
               {formatXValue(tick)}
             </text>
@@ -323,11 +331,11 @@ export default function ScatterChart({
           {xLabel && (
             <text
               x={margin.left + innerWidth / 2}
-              y={height - 10}
+              y={chartHeight - 8}
               textAnchor="middle"
-              fontSize="13"
-              fontFamily="var(--font-body), Lato, sans-serif"
-              fill="var(--text-secondary, #6b7280)"
+              fontSize={fontSize.axisTitle}
+              fontWeight="500"
+              fill="var(--text-secondary)"
             >
               {xLabel}
             </text>
@@ -372,10 +380,9 @@ export default function ScatterChart({
             y={yScale(data.find(d => d.id === hoveredPoint)!.y) -
                sizeScale(data.find(d => d.id === hoveredPoint)!.size || 1) - 8}
             textAnchor="middle"
-            fontSize="12"
+            fontSize={fontSize.bubbleLabel}
             fontWeight="600"
-            fontFamily="var(--font-body), Lato, sans-serif"
-            fill="var(--text-primary, #1f2937)"
+            fill="var(--text-primary)"
           >
             {data.find(d => d.id === hoveredPoint)!.label}
           </text>
@@ -395,7 +402,7 @@ export default function ScatterChart({
                   backgroundColor: getContinentColor(continent)
                 }}
               />
-              <span style={{ fontSize: '12px', fontFamily: 'var(--font-body), Lato, sans-serif' }}>
+              <span className="text-sm text-gray-700 dark:text-slate-300">
                 {continent}
               </span>
             </div>
@@ -406,7 +413,7 @@ export default function ScatterChart({
       {/* Size Legend */}
       {showLegend && (
         <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary, #6b7280)' }}>
+          <span className="text-xs text-gray-500 dark:text-slate-400">
             {sizeLabel}:
           </span>
           {[minBubbleRadius, (minBubbleRadius + maxBubbleRadius) / 2, maxBubbleRadius].map((r, i) => (

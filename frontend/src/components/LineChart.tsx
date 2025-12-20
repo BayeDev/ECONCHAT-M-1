@@ -74,11 +74,19 @@ export default function LineChart({
   } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  // Chart dimensions - increased left margin for Y-axis label
-  const width = 720;
-  const margin = { top: 20, right: directLabeling ? 100 : 20, bottom: 50, left: 80 };
+  // Chart dimensions - use smaller viewBox so text appears larger when scaled
+  const width = 400;
+  const chartHeight = 250;
+  const margin = { top: 20, right: directLabeling ? 60 : 20, bottom: 50, left: 65 };
   const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
+  const innerHeight = chartHeight - margin.top - margin.bottom;
+
+  // Font sizes - larger to compensate for SVG scaling
+  const fontSize = {
+    axis: 14,
+    axisTitle: 13,
+    seriesLabel: 14
+  };
 
   // Calculate scales
   const { xScale, yScale, xDomain, yDomain } = useMemo(() => {
@@ -212,29 +220,26 @@ export default function LineChart({
   };
 
   return (
-    <div className="chart-container animate-fade-in" style={{ maxWidth: width }} ref={chartRef}>
+    <div className="chart-container animate-fade-in" ref={chartRef}>
       {/* Header with title and export */}
-      <div className="flex items-start justify-between mb-3 gap-4">
+      <div className="flex items-start justify-between mb-2 gap-3">
         <div className="flex-1 min-w-0">
-          {/* Title - OWID: Georgia/Playfair 24px, semibold */}
+          {/* Title - smaller, balanced with chart */}
           {title && (
             <h3
-              className="chart-title"
-              style={{ fontFamily: "var(--font-display, 'Georgia'), Georgia, serif", fontSize: '24px' }}
+              className="chart-title text-base font-semibold text-gray-800 dark:text-slate-200"
+              style={{ fontFamily: "var(--font-body, 'Inter'), Inter, sans-serif" }}
             >
               {title}
             </h3>
           )}
           {subtitle && (
-            <p
-              className="chart-subtitle"
-              style={{ fontFamily: "var(--font-body, 'Lato'), Lato, sans-serif", fontSize: '14px' }}
-            >
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
               {subtitle}
             </p>
           )}
         </div>
-        {/* Export button - always visible */}
+        {/* Export button */}
         <div className="flex-shrink-0">
           <ChartExport
             data={{
@@ -251,8 +256,9 @@ export default function LineChart({
       {/* SVG Chart */}
       <svg
         width="100%"
-        viewBox={`0 0 ${width} ${height}`}
+        viewBox={`0 0 ${width} ${chartHeight}`}
         className="overflow-visible chart-svg"
+        style={{ maxHeight: height }}
         data-chart="true"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setTooltip(null)}
@@ -301,18 +307,19 @@ export default function LineChart({
             x1={margin.left}
             x2={margin.left}
             y1={margin.top}
-            y2={height - margin.bottom}
+            y2={chartHeight - margin.bottom}
             stroke="var(--border-light)"
             strokeWidth={1}
           />
           {yTicks.map((tick, i) => (
             <g key={i}>
               <text
-                x={margin.left - 10}
+                x={margin.left - 8}
                 y={yScale(tick)}
                 textAnchor="end"
                 dominantBaseline="middle"
-                fontSize="12"
+                fontSize={fontSize.axis}
+                fontWeight="500"
                 fill="var(--text-secondary)"
               >
                 {formatYValue(tick)}
@@ -322,10 +329,11 @@ export default function LineChart({
           {yLabel && (
             <text
               x={-(margin.top + innerHeight / 2)}
-              y={20}
+              y={12}
               transform="rotate(-90)"
               textAnchor="middle"
-              fontSize="12"
+              fontSize={fontSize.axisTitle}
+              fontWeight="500"
               fill="var(--text-secondary)"
               style={{ fontFamily: 'var(--font-body), Lato, sans-serif' }}
             >
@@ -339,8 +347,8 @@ export default function LineChart({
           <line
             x1={margin.left}
             x2={width - margin.right}
-            y1={height - margin.bottom}
-            y2={height - margin.bottom}
+            y1={chartHeight - margin.bottom}
+            y2={chartHeight - margin.bottom}
             stroke="var(--border-light)"
             strokeWidth={1}
           />
@@ -348,9 +356,10 @@ export default function LineChart({
             <g key={i}>
               <text
                 x={xScale(tick)}
-                y={height - margin.bottom + 20}
+                y={chartHeight - margin.bottom + 18}
                 textAnchor="middle"
-                fontSize="12"
+                fontSize={fontSize.axis}
+                fontWeight="500"
                 fill="var(--text-secondary)"
               >
                 {tick}
@@ -360,9 +369,10 @@ export default function LineChart({
           {xLabel && (
             <text
               x={margin.left + innerWidth / 2}
-              y={height - 5}
+              y={chartHeight - 8}
               textAnchor="middle"
-              fontSize="12"
+              fontSize={fontSize.axisTitle}
+              fontWeight="500"
               fill="var(--text-secondary)"
             >
               {xLabel}
@@ -436,8 +446,8 @@ export default function LineChart({
                   x={xScale(s.data[s.data.length - 1].x) + 8}
                   y={yScale(s.data[s.data.length - 1].y || 0)}
                   dominantBaseline="middle"
-                  fontSize="12"
-                  fontWeight="500"
+                  fontSize={fontSize.seriesLabel}
+                  fontWeight="600"
                   fill={color}
                 >
                   {s.name}
