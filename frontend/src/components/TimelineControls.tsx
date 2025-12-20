@@ -1,3 +1,4 @@
+"use client";
 /**
  * EconChat M-2 - TimelineControls Component
  * Play/pause animation controls for time-series data

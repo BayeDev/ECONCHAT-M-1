@@ -1,3 +1,4 @@
+"use client";
 /**
  * EconChat M-2 - ChartTabs Component
  * Tab navigation for switching between Chart/Map/Table views

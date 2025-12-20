@@ -1,0 +1,1333 @@
+/* Import Google Fonts - must come before @tailwind directives */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;600;700&family=Open+Sans:wght@400;600;700&family=Playfair+Display:wght@700&family=Roboto:wght@400;500;700&family=Roboto+Mono&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   EconChat M-2: Economic Data Visualization Theme
+   Based on World Bank, IMF, FAO, UN COMTRADE, OWID
+   ============================================ */
+
+:root {
+  /* ====== Platform Primary Blues ====== */
+  --wb-blue-dark: #002244;
+  --wb-blue-bright: #009FDA;
+  --imf-blue: #004C97;
+  --fao-blue: #116AAB;
+  --un-blue: #009edb;
+  --owid-blue: #3360a9;
+
+  /* ====== World Bank Extended Palette ====== */
+  --wb-orange: #F05023;
+  --wb-yellow: #FDB714;
+  --wb-red: #EB1C2D;
+  --wb-amber: #F78D28;
+  --wb-teal: #009CA7;
+  --wb-green: #00AB51;
+  --wb-purple: #872B90;
+  --wb-aqua: #00A996;
+
+  /* ====== IMF Palette ====== */
+  --imf-blue-10: rgba(0, 76, 151, 0.1);
+  --imf-blue-30: rgba(0, 76, 151, 0.3);
+  --imf-blue-50: rgba(0, 76, 151, 0.5);
+  --imf-blue-80: rgba(0, 76, 151, 0.8);
+
+  /* ====== FAO Palette ====== */
+  --fao-light: #E5ECF4;
+  --fao-text: #545454;
+  --fao-secondary: #999999;
+  --fao-orange: #F58320;
+  --fao-emergency: #980000;
+  --fao-border: #F2F2F2;
+  --fao-hover: #F7F8F9;
+
+  /* ====== UN COMTRADE Palette ====== */
+  --un-export: #009edb;
+  --un-import: #dc3545;
+  --un-reexport: #74c0e8;
+  --un-reimport: #e8a4a4;
+  --un-coverage-good: #28a745;
+  --un-coverage-medium: #ffc107;
+  --un-coverage-poor: #dc3545;
+
+  /* ====== OWID Categorical Palette (7-color) ====== */
+  --owid-1: #3360a9;
+  --owid-2: #c15065;
+  --owid-3: #e6753d;
+  --owid-4: #6d3e91;
+  --owid-5: #c9a227;
+  --owid-6: #578145;
+  --owid-7: #883039;
+
+  /* ====== OWID OwidDistinctLines 24-color Palette ====== */
+  --owid-line-1: #6D3E91;   /* Purple */
+  --owid-line-2: #C05917;   /* Burnt Orange */
+  --owid-line-3: #58AC8C;   /* Teal */
+  --owid-line-4: #286BBB;   /* Blue */
+  --owid-line-5: #883039;   /* Maroon */
+  --owid-line-6: #BC8E5A;   /* Tan */
+  --owid-line-7: #00295B;   /* Navy */
+  --owid-line-8: #C15065;   /* Rose */
+  --owid-line-9: #18470F;   /* Dark Green */
+  --owid-line-10: #9A5129;  /* Brown */
+  --owid-line-11: #E56E5A;  /* Coral */
+  --owid-line-12: #A2559C;  /* Magenta */
+  --owid-line-13: #38AABA;  /* Cyan */
+  --owid-line-14: #578145;  /* Olive */
+  --owid-line-15: #970046;  /* Burgundy */
+  --owid-line-16: #00847E;  /* Teal Dark */
+  --owid-line-17: #B13507;  /* Rust */
+  --owid-line-18: #4C6A9C;  /* Steel Blue */
+  --owid-line-19: #CF0A66;  /* Hot Pink */
+  --owid-line-20: #00875E;  /* Green */
+  --owid-line-21: #B16214;  /* Amber */
+  --owid-line-22: #8C4569;  /* Plum */
+  --owid-line-23: #3B8E1D;  /* Lime */
+  --owid-line-24: #D73C50;  /* Red */
+
+  /* ====== Gapminder/OWID Continent Colors ====== */
+  --continent-africa: #00847E;
+  --continent-asia: #C15065;
+  --continent-europe: #286BBB;
+  --continent-north-america: #6D3E91;
+  --continent-south-america: #58AC8C;
+  --continent-oceania: #BC8E5A;
+
+  /* ====== Common Neutrals ====== */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #888888;
+  --text-light: #aaaaaa;
+  --border-light: #e0e0e0;
+  --border-medium: #cccccc;
+  --bg-white: #ffffff;
+  --bg-alternate: #f7f8f9;
+  --bg-hover: #f0f4f8;
+  --grid-line: #f0f0f0;
+  --grid-line-dark: #e5e5e5;
+
+  /* ====== Semantic Colors ====== */
+  --positive: #00AB51;
+  --negative: #dc3545;
+  --warning: #ffc107;
+  --info: #17a2b8;
+  --forecast: #6c757d;
+
+  /* ====== Typography ====== */
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Lato', 'Open Sans', sans-serif;
+  --font-ui: 'Open Sans', 'Roboto', sans-serif;
+  --font-mono: 'Roboto Mono', monospace;
+
+  /* ====== Font Sizes ====== */
+  --text-xs: 10px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+
+  /* ====== Chart Dimensions ====== */
+  --chart-width-default: 680px;
+  --chart-width-max: 850px;
+  --chart-height-min: 400px;
+  --chart-aspect-ratio: 16 / 9;
+
+  /* ====== Spacing ====== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* ====== Table ====== */
+  --table-row-height: 44px;
+  --table-header-bg: #f9fafb;
+  --table-border: #e5e7eb;
+
+  /* ====== Animation ====== */
+  --transition-fast: 200ms;
+  --transition-medium: 500ms;
+  --transition-slow: 800ms;
+  --easing-default: ease-out;
+}
+
+/* ====== Base Styles ====== */
+body {
+  font-family: var(--font-body);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ============================================
+   Data Tables - Multi-Source Styling
+   ============================================ */
+
+/* Base table styling */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  margin: var(--spacing-md) 0;
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.data-table th {
+  background-color: var(--table-header-bg);
+  font-weight: 600;
+  color: var(--text-primary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table td.numeric,
+.data-table th.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background-color: var(--bg-alternate);
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--bg-hover);
+}
+
+/* Sortable columns */
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th.sortable:hover {
+  background-color: var(--bg-hover);
+}
+
+.data-table th.sortable::after {
+  content: '⇅';
+  margin-left: var(--spacing-xs);
+  opacity: 0.3;
+  font-size: var(--text-sm);
+}
+
+.data-table th.sortable.asc::after {
+  content: '↑';
+  opacity: 1;
+}
+
+.data-table th.sortable.desc::after {
+  content: '↓';
+  opacity: 1;
+}
+
+/* ====== World Bank Table Style ====== */
+.data-table.wb-style th {
+  background-color: var(--wb-blue-dark);
+  color: white;
+}
+
+.data-table.wb-style th.sortable:hover {
+  background-color: #003366;
+}
+
+.data-table.wb-style .missing-value {
+  color: var(--text-muted);
+}
+
+.data-table.wb-style .missing-value::after {
+  content: '..';
+}
+
+/* ====== IMF Table Style ====== */
+.data-table.imf-style th {
+  background-color: var(--imf-blue);
+  color: white;
+}
+
+.data-table.imf-style .forecast-cell {
+  background-color: var(--imf-blue-10);
+  font-style: italic;
+}
+
+.data-table.imf-style .country-group {
+  font-weight: 700;
+  background-color: var(--imf-blue-10);
+}
+
+/* ====== FAO Table Style ====== */
+.data-table.fao-style th {
+  background-color: var(--fao-light);
+  color: var(--fao-text);
+  border: 1px solid var(--fao-border);
+}
+
+.data-table.fao-style td {
+  border: 1px solid var(--fao-border);
+}
+
+.data-table.fao-style tbody tr:hover {
+  background-color: var(--fao-light);
+}
+
+/* FAO Data Flags */
+.data-flag {
+  font-size: var(--text-xs);
+  vertical-align: super;
+  color: var(--fao-secondary);
+  margin-left: 2px;
+}
+
+.data-flag.estimate { color: var(--fao-orange); }
+.data-flag.imputed { color: var(--info); }
+.data-flag.calculated { color: var(--fao-blue); }
+
+/* ====== UN COMTRADE Table Style ====== */
+.data-table.un-style th {
+  background-color: var(--un-blue);
+  color: white;
+  font-family: 'Roboto', sans-serif;
+}
+
+.data-table.un-style .export-value {
+  color: var(--un-export);
+  font-weight: 500;
+}
+
+.data-table.un-style .import-value {
+  color: var(--un-import);
+  font-weight: 500;
+}
+
+/* Trade flow indicators */
+.trade-flow-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.trade-flow-badge.export {
+  background-color: rgba(0, 158, 219, 0.15);
+  color: var(--un-export);
+}
+
+.trade-flow-badge.import {
+  background-color: rgba(220, 53, 69, 0.15);
+  color: var(--un-import);
+}
+
+/* ====== OWID Table Style ====== */
+.data-table.owid-style th {
+  background-color: var(--owid-blue);
+  color: white;
+  font-family: var(--font-body);
+}
+
+.data-table.owid-style .entity-name {
+  font-weight: 500;
+}
+
+/* ============================================
+   Chart Container Styling
+   ============================================ */
+
+.chart-container {
+  width: 100%;
+  max-width: var(--chart-width-max);
+  min-height: var(--chart-height-min);
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-lg);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  overflow: visible;
+  position: relative;
+}
+
+.chart-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.chart-subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.chart-source {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--grid-line);
+}
+
+.chart-source::before {
+  content: 'Source: ';
+  font-weight: 600;
+}
+
+/* ============================================
+   Tooltip Styling
+   ============================================ */
+
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  z-index: 100;
+  max-width: 300px;
+  opacity: 0;
+  transition: opacity var(--transition-fast) ease;
+}
+
+.chart-tooltip.visible {
+  opacity: 1;
+}
+
+.tooltip-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.tooltip-value {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ============================================
+   Value Formatting Classes
+   ============================================ */
+
+.value-positive {
+  color: var(--positive);
+}
+
+.value-negative {
+  color: var(--negative);
+}
+
+.value-forecast {
+  font-style: italic;
+  color: var(--forecast);
+}
+
+.value-estimate {
+  color: var(--text-secondary);
+}
+
+.value-missing {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Trend indicators */
+.trend-up::before {
+  content: '▲ ';
+  color: var(--positive);
+  font-size: 0.8em;
+}
+
+.trend-down::before {
+  content: '▼ ';
+  color: var(--negative);
+  font-size: 0.8em;
+}
+
+.trend-flat::before {
+  content: '► ';
+  color: var(--text-muted);
+  font-size: 0.8em;
+}
+
+/* ============================================
+   Source Attribution Badges
+   ============================================ */
+
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: transform var(--transition-fast) ease;
+}
+
+.source-badge:hover {
+  transform: scale(1.05);
+}
+
+.source-badge.world-bank {
+  background-color: rgba(0, 34, 68, 0.1);
+  color: var(--wb-blue-dark);
+}
+
+.source-badge.imf {
+  background-color: rgba(0, 76, 151, 0.1);
+  color: var(--imf-blue);
+}
+
+.source-badge.fao {
+  background-color: rgba(17, 106, 171, 0.1);
+  color: var(--fao-blue);
+}
+
+.source-badge.un-comtrade {
+  background-color: rgba(0, 158, 219, 0.1);
+  color: var(--un-blue);
+}
+
+.source-badge.owid {
+  background-color: rgba(51, 96, 169, 0.1);
+  color: var(--owid-blue);
+}
+
+/* ============================================
+   Interactive Elements
+   ============================================ */
+
+/* Play button for animations */
+.play-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--owid-blue);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast) ease, transform var(--transition-fast) ease;
+}
+
+.play-button:hover {
+  background: #2a4f8a;
+  transform: scale(1.1);
+}
+
+.play-button.playing {
+  background: var(--negative);
+}
+
+/* Timeline scrubber */
+.timeline-scrubber {
+  width: 100%;
+  height: 6px;
+  background: var(--grid-line);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+}
+
+.timeline-scrubber .progress {
+  height: 100%;
+  background: var(--owid-blue);
+  border-radius: 3px;
+  transition: width var(--transition-fast) ease;
+}
+
+.timeline-scrubber .handle {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  background: white;
+  border: 2px solid var(--owid-blue);
+  border-radius: 50%;
+  cursor: grab;
+  transition: transform var(--transition-fast) ease;
+}
+
+.timeline-scrubber .handle:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+/* Tab switching */
+.chart-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--grid-line);
+}
+
+.chart-tab {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--transition-fast) ease;
+}
+
+.chart-tab:hover {
+  color: var(--text-primary);
+}
+
+.chart-tab.active {
+  color: var(--owid-blue);
+  font-weight: 600;
+}
+
+.chart-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--owid-blue);
+}
+
+/* ============================================
+   Legend Styling
+   ============================================ */
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  font-size: var(--text-sm);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  transition: opacity var(--transition-fast) ease;
+}
+
+.legend-item:hover {
+  opacity: 0.8;
+}
+
+.legend-item.muted {
+  opacity: 0.3;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-line {
+  width: 20px;
+  height: 3px;
+  border-radius: 1.5px;
+}
+
+.legend-label {
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   Hatched Pattern for Missing Data (OWID style)
+   ============================================ */
+
+.missing-data-pattern {
+  background: repeating-linear-gradient(
+    45deg,
+    #f0f0f0,
+    #f0f0f0 4px,
+    #e0e0e0 4px,
+    #e0e0e0 8px
+  );
+}
+
+/* ============================================
+   Coverage Quality Indicators (UN COMTRADE)
+   ============================================ */
+
+.coverage-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: var(--spacing-xs);
+}
+
+.coverage-indicator.good {
+  background-color: var(--un-coverage-good);
+}
+
+.coverage-indicator.medium {
+  background-color: var(--un-coverage-medium);
+}
+
+.coverage-indicator.poor {
+  background-color: var(--un-coverage-poor);
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --text-xs: 9px;
+    --text-sm: 11px;
+    --text-base: 13px;
+    --text-lg: 15px;
+    --text-xl: 17px;
+    --text-2xl: 20px;
+    --spacing-md: 10px;
+    --spacing-lg: 14px;
+  }
+
+  .chart-container {
+    padding: var(--spacing-md);
+  }
+
+  .data-table {
+    font-size: var(--text-sm);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+}
+
+/* ============================================
+   Prose/Markdown Overrides for Chat
+   ============================================ */
+
+.prose table {
+  @apply data-table;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--table-border);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.prose th {
+  background-color: var(--table-header-bg);
+  font-weight: 600;
+}
+
+.prose tr:nth-child(even) {
+  background-color: var(--bg-alternate);
+}
+
+.prose tr:hover {
+  background-color: var(--bg-hover);
+}
+
+/* ============================================
+   Animation Keyframes
+   ============================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--transition-medium) var(--easing-default);
+}
+
+.animate-slide-up {
+  animation: slideUp var(--transition-medium) var(--easing-default);
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ============================================
+   Chart Tabs Navigation (OWID/World Bank style)
+   ============================================ */
+
+.chart-tabs-container {
+  width: 100%;
+}
+
+.chart-tabs-nav {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--grid-line);
+}
+
+.chart-tabs-nav .chart-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: none;
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--transition-fast) ease;
+}
+
+.chart-tabs-nav .chart-tab:hover {
+  color: var(--text-primary);
+}
+
+.chart-tabs-nav .chart-tab.active {
+  color: var(--owid-blue);
+  font-weight: 600;
+}
+
+.chart-tabs-nav .chart-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--owid-blue);
+}
+
+.chart-tabs-content {
+  padding: var(--spacing-md) 0;
+}
+
+/* ============================================
+   Timeline Controls (Gapminder/OWID style)
+   ============================================ */
+
+.timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  font-family: var(--font-body);
+}
+
+.timeline-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timeline-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background: var(--bg-alternate);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.timeline-btn:hover:not(:disabled) {
+  background: var(--owid-blue);
+  color: white;
+}
+
+.timeline-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.timeline-btn.play-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--owid-blue);
+  color: white;
+}
+
+.timeline-btn.play-btn:hover {
+  background: #2a4f8a;
+  transform: scale(1.05);
+}
+
+.timeline-btn.play-btn.playing {
+  background: var(--negative);
+}
+
+.timeline-slider-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeline-year-display {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--owid-blue);
+  text-align: center;
+  min-width: 60px;
+}
+
+.timeline-slider-wrapper {
+  position: relative;
+  height: 8px;
+}
+
+.timeline-slider {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border-light);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.timeline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--owid-blue);
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  cursor: grab;
+}
+
+.timeline-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--owid-blue);
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  cursor: grab;
+}
+
+.timeline-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 8px;
+  background: var(--owid-blue);
+  border-radius: 4px 0 0 4px;
+  pointer-events: none;
+}
+
+.timeline-labels {
+  position: relative;
+  height: 20px;
+  margin-top: 8px;
+}
+
+.timeline-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   Coverage Dots (UN Comtrade)
+   ============================================ */
+
+.coverage-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* ============================================
+   FAO Flag Notation
+   ============================================ */
+
+.fao-flag-legend .data-flag {
+  font-size: 12px;
+  margin-right: 2px;
+}
+
+/* ============================================
+   Scatter/Bubble Chart Enhancements
+   ============================================ */
+
+.bubble-chart circle {
+  transition: all 200ms ease;
+}
+
+.bubble-chart circle:hover {
+  stroke: white;
+  stroke-width: 2;
+}
+
+.bubble-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  pointer-events: none;
+}
+
+/* ============================================
+   Area Chart Enhancements
+   ============================================ */
+
+.area-chart-path {
+  transition: fill-opacity 200ms ease;
+}
+
+.area-chart-path:hover {
+  fill-opacity: 0.9;
+}
+
+/* ============================================
+   OWID Line Chart Specifications
+   ============================================ */
+
+.line-path {
+  transition: stroke-width 200ms ease;
+}
+
+.data-marker {
+  transition: r 200ms ease;
+}
+
+/* Direct labeling at end of lines */
+.line-end-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+
+@media print {
+  .chart-container {
+    break-inside: avoid;
+    border: none;
+    box-shadow: none;
+  }
+
+  .timeline-controls,
+  .chart-tabs-nav,
+  .play-button {
+    display: none;
+  }
+
+  .data-table {
+    font-size: 10px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 4px 8px;
+  }
+}
+
+/* ============================================
+   CHART EXPORT STYLES
+   ============================================ */
+
+.chart-export-container {
+  position: relative;
+}
+
+.export-button {
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.export-button:hover {
+  background: var(--surface-light);
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+.export-dropdown {
+  min-width: 180px;
+  animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.export-option {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background 0.15s ease;
+}
+
+.export-option:hover {
+  background: var(--surface-light);
+}
+
+.export-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-option svg {
+  flex-shrink: 0;
+}
+
+/* Chart header layout */
+.chart-header {
+  display: flex !important;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 16px;
+}
+
+.chart-header .chart-title {
+  margin-bottom: 4px;
+}
+
+.chart-header .chart-subtitle {
+  margin-bottom: 0;
+}
+
+/* ============================================
+   Dark Mode Overrides
+   ============================================ */
+
+.dark {
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-light: #475569;
+  --border-light: #334155;
+  --border-medium: #475569;
+  --bg-white: #0f172a;
+  --bg-alternate: #1e293b;
+  --bg-hover: #334155;
+  --grid-line: #334155;
+  --grid-line-dark: #475569;
+  --table-header-bg: #1e293b;
+  --table-border: #334155;
+}
+
+.dark .chart-container {
+  background: var(--bg-alternate);
+  border-color: var(--border-light);
+}
+
+.dark .chart-title {
+  color: var(--text-primary);
+}
+
+.dark .chart-subtitle {
+  color: var(--text-secondary);
+}
+
+.dark .data-table th {
+  background-color: var(--table-header-bg);
+  color: var(--text-primary);
+  border-color: var(--table-border);
+}
+
+.dark .data-table td {
+  border-color: var(--table-border);
+  color: var(--text-primary);
+}
+
+.dark .data-table tbody tr:nth-child(even) {
+  background-color: var(--bg-alternate);
+}
+
+.dark .data-table tbody tr:hover {
+  background-color: var(--bg-hover);
+}
+
+/* Source badges dark mode */
+.dark .source-badge.world-bank {
+  background-color: rgba(0, 159, 218, 0.2);
+  color: #009fda;
+}
+
+.dark .source-badge.imf {
+  background-color: rgba(0, 159, 218, 0.2);
+  color: #66b8e8;
+}
+
+.dark .source-badge.fao {
+  background-color: rgba(17, 106, 171, 0.2);
+  color: #5da5d5;
+}
+
+.dark .source-badge.un-comtrade {
+  background-color: rgba(0, 158, 219, 0.2);
+  color: #33b5e5;
+}
+
+.dark .source-badge.owid {
+  background-color: rgba(51, 96, 169, 0.2);
+  color: #6b9be3;
+}
+
+/* Tooltip dark mode */
+.dark .chart-tooltip {
+  background: var(--bg-alternate);
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+/* Export button dark mode */
+.dark .export-button {
+  background: transparent;
+  border-color: var(--border-light);
+  color: var(--text-secondary);
+}
+
+.dark .export-button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+.dark .export-dropdown {
+  background: var(--bg-alternate);
+  border-color: var(--border-light);
+}
+
+.dark .export-option {
+  color: var(--text-primary);
+}
+
+.dark .export-option:hover {
+  background: var(--bg-hover);
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: 2px solid #009fda;
+  outline-offset: 2px;
+}
+
+/* Skip link styling */
+.sr-only:focus {
+  position: absolute;
+  width: auto;
+  height: auto;
+  padding: 1rem;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}

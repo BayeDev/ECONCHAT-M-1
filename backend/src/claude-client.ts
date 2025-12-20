@@ -72,10 +72,17 @@ export interface MapDataPoint {
   value: number | null;
 }
 
+// Structure for table data
+export interface TableData {
+  columns: Array<{ key: string; header: string; type?: string }>;
+  rows: Array<Record<string, unknown>>;
+}
+
 export interface ChartData {
-  type: 'line' | 'bar' | 'scatter' | 'area' | 'map';
+  type: 'line' | 'bar' | 'scatter' | 'area' | 'map' | 'table';
   series: ChartSeries[];
   mapData?: MapDataPoint[];  // For map visualizations
+  tableData?: TableData;     // For table visualizations
   year?: number;             // For map: which year the data represents
   title?: string;
   xLabel?: string;

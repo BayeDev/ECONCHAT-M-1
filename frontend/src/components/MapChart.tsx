@@ -1,3 +1,4 @@
+"use client";
 /**
  * EconChat - MapChart Component
  * Choropleth world map visualization using react-simple-maps

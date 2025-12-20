@@ -161,21 +161,23 @@ export default function BarChart({
   return (
     <div className="chart-container animate-fade-in" style={{ maxWidth: width }} ref={chartRef}>
       {/* Header with title and export */}
-      <div className="chart-header flex items-start justify-between mb-2">
-        <div className="flex-1">
+      <div className="flex items-start justify-between mb-3 gap-4">
+        <div className="flex-1 min-w-0">
           {title && <h3 className="chart-title">{title}</h3>}
           {subtitle && <p className="chart-subtitle">{subtitle}</p>}
         </div>
-        {/* Export button */}
-        <ChartExport
-          data={{
-            title: title,
-            series: exportSeries,
-            source: sourceAttribution
-          }}
-          chartRef={chartRef}
-          filename={title?.toLowerCase().replace(/\s+/g, '-') || 'chart-data'}
-        />
+        {/* Export button - always visible */}
+        <div className="flex-shrink-0">
+          <ChartExport
+            data={{
+              title: title,
+              series: exportSeries,
+              source: sourceAttribution
+            }}
+            chartRef={chartRef}
+            filename={title?.toLowerCase().replace(/\s+/g, '-') || 'chart-data'}
+          />
+        </div>
       </div>
 
       {/* SVG Chart */}

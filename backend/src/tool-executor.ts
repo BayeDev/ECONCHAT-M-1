@@ -3,7 +3,7 @@
 
 import axios from 'axios';
 
-// Country name to code mappings for UN Comtrade
+// Country name to code mappings for UN Comtrade (comprehensive)
 const COMTRADE_COUNTRY_CODES: Record<string, number> = {
   'usa': 842, 'united states': 842, 'us': 842,
   'china': 156, 'chn': 156,
@@ -44,7 +44,171 @@ const COMTRADE_COUNTRY_CODES: Record<string, number> = {
   'other asia nes': 490,
   'other europe nes': 697,
   'other africa nes': 699,
-  'bunkers': 837, 'free zones': 838
+  'bunkers': 837, 'free zones': 838,
+  // Additional countries
+  'belgium': 56, 'bel': 56,
+  'jordan': 400, 'jor': 400,
+  'austria': 40, 'aut': 40,
+  'poland': 616, 'pol': 616,
+  'sweden': 752, 'swe': 752,
+  'norway': 578, 'nor': 578,
+  'denmark': 208, 'dnk': 208,
+  'finland': 246, 'fin': 246,
+  'ireland': 372, 'irl': 372,
+  'portugal': 620, 'prt': 620,
+  'greece': 300, 'grc': 300,
+  'czech republic': 203, 'czechia': 203, 'cze': 203,
+  'hungary': 348, 'hun': 348,
+  'romania': 642, 'rou': 642,
+  'ukraine': 804, 'ukr': 804,
+  'israel': 376, 'isr': 376,
+  'kuwait': 414, 'kwt': 414,
+  'qatar': 634, 'qat': 634,
+  'bahrain': 48, 'bhr': 48,
+  'oman': 512, 'omn': 512,
+  'iraq': 368, 'irq': 368,
+  'iran': 364, 'irn': 364,
+  'new zealand': 554, 'nzl': 554,
+  'chile': 152, 'chl': 152,
+  'colombia': 170, 'col': 170,
+  'peru': 604, 'per': 604,
+  'venezuela': 862, 'ven': 862,
+  'ecuador': 218, 'ecu': 218,
+  'philippines': 608, 'phl': 608,
+  'hong kong': 344, 'hkg': 344,
+  'taiwan': 158, 'twn': 158,
+  'kenya': 404, 'ken': 404,
+  'ethiopia': 231, 'eth': 231,
+  'ghana': 288, 'gha': 288,
+  'tanzania': 834, 'tza': 834,
+  'algeria': 12, 'dza': 12,
+  'tunisia': 788, 'tun': 788,
+  'libya': 434, 'lby': 434,
+  'sudan': 736, 'sdn': 736,
+  'angola': 24, 'ago': 24,
+  'kazakhstan': 398, 'kaz': 398,
+  'uzbekistan': 860, 'uzb': 860,
+  'sri lanka': 144, 'lka': 144,
+  'myanmar': 104, 'mmr': 104, 'burma': 104,
+  'cambodia': 116, 'khm': 116,
+  'laos': 418, 'lao': 418,
+  'nepal': 524, 'npl': 524,
+  'luxembourg': 442, 'lux': 442,
+  'slovakia': 703, 'svk': 703,
+  'slovenia': 705, 'svn': 705,
+  'croatia': 191, 'hrv': 191,
+  'serbia': 688, 'srb': 688,
+  'bulgaria': 100, 'bgr': 100,
+  'lithuania': 440, 'ltu': 440,
+  'latvia': 428, 'lva': 428,
+  'estonia': 233, 'est': 233,
+  'cyprus': 196, 'cyp': 196,
+  'malta': 470, 'mlt': 470,
+  'iceland': 352, 'isl': 352
+};
+
+// Reverse lookup: code to country name (comprehensive)
+const COMTRADE_CODE_TO_NAME: Record<number, string> = {
+  0: 'World',
+  12: 'Algeria',
+  24: 'Angola',
+  32: 'Argentina',
+  36: 'Australia',
+  40: 'Austria',
+  48: 'Bahrain',
+  50: 'Bangladesh',
+  56: 'Belgium',
+  76: 'Brazil',
+  100: 'Bulgaria',
+  104: 'Myanmar',
+  116: 'Cambodia',
+  124: 'Canada',
+  144: 'Sri Lanka',
+  152: 'Chile',
+  156: 'China',
+  158: 'Taiwan',
+  170: 'Colombia',
+  191: 'Croatia',
+  196: 'Cyprus',
+  203: 'Czech Republic',
+  208: 'Denmark',
+  218: 'Ecuador',
+  231: 'Ethiopia',
+  233: 'Estonia',
+  246: 'Finland',
+  251: 'France',
+  276: 'Germany',
+  288: 'Ghana',
+  300: 'Greece',
+  344: 'Hong Kong',
+  348: 'Hungary',
+  352: 'Iceland',
+  356: 'India',
+  360: 'Indonesia',
+  364: 'Iran',
+  368: 'Iraq',
+  372: 'Ireland',
+  376: 'Israel',
+  380: 'Italy',
+  392: 'Japan',
+  398: 'Kazakhstan',
+  400: 'Jordan',
+  404: 'Kenya',
+  410: 'South Korea',
+  414: 'Kuwait',
+  418: 'Laos',
+  428: 'Latvia',
+  434: 'Libya',
+  440: 'Lithuania',
+  442: 'Luxembourg',
+  458: 'Malaysia',
+  470: 'Malta',
+  484: 'Mexico',
+  504: 'Morocco',
+  512: 'Oman',
+  524: 'Nepal',
+  528: 'Netherlands',
+  554: 'New Zealand',
+  562: 'Niger',
+  566: 'Nigeria',
+  578: 'Norway',
+  586: 'Pakistan',
+  604: 'Peru',
+  608: 'Philippines',
+  616: 'Poland',
+  620: 'Portugal',
+  634: 'Qatar',
+  642: 'Romania',
+  643: 'Russia',
+  682: 'Saudi Arabia',
+  688: 'Serbia',
+  702: 'Singapore',
+  703: 'Slovakia',
+  705: 'Slovenia',
+  710: 'South Africa',
+  724: 'Spain',
+  736: 'Sudan',
+  752: 'Sweden',
+  756: 'Switzerland',
+  764: 'Thailand',
+  784: 'United Arab Emirates',
+  788: 'Tunisia',
+  792: 'Turkey',
+  804: 'Ukraine',
+  818: 'Egypt',
+  826: 'United Kingdom',
+  834: 'Tanzania',
+  842: 'United States',
+  860: 'Uzbekistan',
+  862: 'Venezuela',
+  704: 'Vietnam',
+  // Special areas
+  490: 'Other Asia N.E.S.',
+  697: 'Other Europe N.E.S.',
+  699: 'Other Africa N.E.S.',
+  837: 'Bunkers',
+  838: 'Free Zones',
+  899: 'Areas N.E.S.'
 };
 
 // FAO country name mappings (FAO uses numeric area codes)
@@ -76,43 +240,147 @@ const FAO_ELEMENT_CODES: Record<string, number> = {
   'stocks': 5071, 'import quantity': 5610, 'export quantity': 5910
 };
 
-// OWID chart catalog
+// OWID chart catalog - EXPANDED with democracy, governance, and more topics
 const OWID_CHARTS = [
-  { slug: 'life-expectancy', name: 'Life expectancy at birth', topics: ['health', 'life', 'mortality', 'death'] },
-  { slug: 'gdp-per-capita-worldbank', name: 'GDP per capita', topics: ['gdp', 'economy', 'income', 'wealth'] },
-  { slug: 'share-of-population-in-extreme-poverty', name: 'Extreme poverty rate', topics: ['poverty', 'poor', 'income'] },
-  { slug: 'human-development-index', name: 'Human Development Index', topics: ['hdi', 'development', 'living standards'] },
-  { slug: 'co2-emissions-per-capita', name: 'CO2 emissions per capita', topics: ['co2', 'emissions', 'climate', 'carbon', 'environment'] },
-  { slug: 'literacy-rate-adult-total', name: 'Literacy rate', topics: ['literacy', 'education', 'reading', 'writing'] },
-  { slug: 'primary-energy-cons', name: 'Primary energy consumption', topics: ['energy', 'power', 'consumption'] },
+  // Health & Demographics
+  { slug: 'life-expectancy', name: 'Life expectancy at birth', topics: ['health', 'life', 'mortality', 'death', 'lifespan', 'longevity'] },
   { slug: 'population', name: 'Population', topics: ['population', 'people', 'demographic', 'inhabitants'] },
   { slug: 'fertility-rate', name: 'Total fertility rate', topics: ['fertility', 'birth', 'children', 'births'] },
   { slug: 'infant-mortality', name: 'Infant mortality rate', topics: ['infant', 'mortality', 'child', 'death', 'baby'] },
-  { slug: 'unemployment-rate', name: 'Unemployment rate', topics: ['unemployment', 'jobs', 'labor', 'work', 'employment'] },
-  { slug: 'share-with-access-to-electricity', name: 'Access to electricity', topics: ['electricity', 'power', 'energy', 'electrification'] },
   { slug: 'maternal-mortality', name: 'Maternal mortality ratio', topics: ['maternal', 'mortality', 'pregnancy', 'mother'] },
   { slug: 'share-of-children-who-are-stunted', name: 'Child stunting', topics: ['stunting', 'nutrition', 'children', 'malnutrition', 'growth'] },
+
+  // Economy
+  { slug: 'gdp-per-capita-worldbank', name: 'GDP per capita', topics: ['gdp', 'economy', 'income', 'wealth'] },
+  { slug: 'share-of-population-in-extreme-poverty', name: 'Extreme poverty rate', topics: ['poverty', 'poor', 'income'] },
+  { slug: 'human-development-index', name: 'Human Development Index', topics: ['hdi', 'development', 'living standards'] },
   { slug: 'gini-coefficient', name: 'Gini coefficient (inequality)', topics: ['gini', 'inequality', 'income distribution'] },
+  { slug: 'unemployment-rate', name: 'Unemployment rate', topics: ['unemployment', 'jobs', 'labor', 'work', 'employment'] },
   { slug: 'inflation-of-consumer-prices', name: 'Consumer price inflation', topics: ['inflation', 'prices', 'cpi'] },
-  { slug: 'government-expenditure-education-gdp', name: 'Education spending (% GDP)', topics: ['education', 'spending', 'government'] },
-  { slug: 'military-expenditure-share-gdp', name: 'Military spending (% GDP)', topics: ['military', 'defense', 'spending'] },
-  { slug: 'trade-as-share-of-gdp', name: 'Trade openness (% GDP)', topics: ['trade', 'exports', 'imports', 'openness'] }
+  { slug: 'trade-as-share-of-gdp', name: 'Trade openness (% GDP)', topics: ['trade', 'exports', 'imports', 'openness'] },
+
+  // Democracy & Governance (EXPANDED)
+  { slug: 'democracy-index-eiu', name: 'Democracy Index (EIU)', topics: ['democracy', 'democratic', 'governance', 'political', 'freedom', 'elections', 'voting', 'autocracy', 'eiu'] },
+  { slug: 'electoral-democracy-index', name: 'Electoral Democracy Index (V-Dem)', topics: ['democracy', 'electoral', 'elections', 'voting', 'democratic', 'vdem'] },
+  { slug: 'liberal-democracy-index', name: 'Liberal Democracy Index (V-Dem)', topics: ['democracy', 'liberal', 'freedom', 'rights', 'vdem'] },
+  { slug: 'political-regime', name: 'Political Regime Type', topics: ['regime', 'political', 'autocracy', 'democracy', 'government'] },
+  { slug: 'human-rights-index-vdem', name: 'Human Rights Index', topics: ['human rights', 'rights', 'civil liberties', 'freedom'] },
+  { slug: 'civil-liberties-index', name: 'Civil Liberties Index', topics: ['civil liberties', 'freedom', 'rights'] },
+  { slug: 'freedom-of-expression', name: 'Freedom of Expression Index', topics: ['freedom', 'expression', 'speech', 'press', 'media'] },
+  { slug: 'rule-of-law-index', name: 'Rule of Law Index', topics: ['rule of law', 'law', 'justice', 'legal', 'governance'] },
+  { slug: 'corruption-perception-index', name: 'Corruption Perception Index', topics: ['corruption', 'transparency', 'governance', 'bribery'] },
+  { slug: 'press-freedom-index', name: 'Press Freedom Index', topics: ['press', 'media', 'freedom', 'journalism', 'news'] },
+
+  // Education
+  { slug: 'literacy-rate-adult-total', name: 'Literacy rate', topics: ['literacy', 'education', 'reading', 'writing'] },
+  { slug: 'government-expenditure-education-gdp', name: 'Education spending (% GDP)', topics: ['education', 'spending', 'government', 'schools'] },
+  { slug: 'mean-years-of-schooling', name: 'Mean years of schooling', topics: ['education', 'schooling', 'years', 'attainment'] },
+  { slug: 'primary-school-enrollment', name: 'Primary school enrollment', topics: ['education', 'primary', 'school', 'enrollment', 'children'] },
+  { slug: 'secondary-school-enrollment', name: 'Secondary school enrollment', topics: ['education', 'secondary', 'school', 'enrollment'] },
+  { slug: 'tertiary-school-enrollment', name: 'Tertiary school enrollment', topics: ['education', 'tertiary', 'university', 'higher education', 'college'] },
+
+  // Energy & Environment
+  { slug: 'co2-emissions-per-capita', name: 'CO2 emissions per capita', topics: ['co2', 'emissions', 'climate', 'carbon', 'environment'] },
+  { slug: 'primary-energy-cons', name: 'Primary energy consumption', topics: ['energy', 'power', 'consumption'] },
+  { slug: 'share-with-access-to-electricity', name: 'Access to electricity', topics: ['electricity', 'power', 'energy', 'electrification'] },
+  { slug: 'share-electricity-renewables', name: 'Renewable electricity share', topics: ['renewable', 'electricity', 'solar', 'wind', 'clean'] },
+  { slug: 'forest-area-share', name: 'Forest area (% of land)', topics: ['forest', 'deforestation', 'trees', 'land', 'environment'] },
+
+  // Military & Security
+  { slug: 'military-expenditure-share-gdp', name: 'Military spending (% GDP)', topics: ['military', 'defense', 'spending', 'army', 'armed forces'] },
+
+  // Internet & Technology
+  { slug: 'share-of-individuals-using-the-internet', name: 'Internet users (% population)', topics: ['internet', 'digital', 'technology', 'online', 'connectivity'] },
+  { slug: 'mobile-cellular-subscriptions-per-100-people', name: 'Mobile subscriptions per 100', topics: ['mobile', 'phone', 'cellular', 'telecom'] }
+];
+
+// World Bank curated indicator catalog (WB API search is unreliable)
+const WB_INDICATORS_CATALOG = [
+  // Logistics & Infrastructure
+  { code: 'LP.LPI.OVRL.XQ', name: 'Logistics Performance Index: Overall', topics: ['logistics', 'infrastructure', 'transport', 'trade'] },
+  { code: 'LP.LPI.INFR.XQ', name: 'LPI: Quality of trade and transport infrastructure', topics: ['logistics', 'infrastructure', 'transport', 'road', 'port'] },
+  { code: 'LP.LPI.CUST.XQ', name: 'LPI: Customs clearance efficiency', topics: ['logistics', 'customs', 'trade'] },
+  { code: 'LP.LPI.LOGS.XQ', name: 'LPI: Logistics services quality', topics: ['logistics', 'services'] },
+  { code: 'LP.LPI.TIME.XQ', name: 'LPI: Timeliness of shipments', topics: ['logistics', 'shipping', 'delivery'] },
+  { code: 'LP.LPI.TRAC.XQ', name: 'LPI: Tracking and tracing', topics: ['logistics', 'tracking'] },
+  { code: 'LP.LPI.ITRN.XQ', name: 'LPI: International shipments', topics: ['logistics', 'shipping', 'international'] },
+  { code: 'LP.EXP.DURS.MD', name: 'Lead time to export (median days)', topics: ['export', 'trade', 'logistics'] },
+  { code: 'LP.IMP.DURS.MD', name: 'Lead time to import (median days)', topics: ['import', 'trade', 'logistics'] },
+
+  // Transport Infrastructure
+  { code: 'IS.RRS.TOTL.KM', name: 'Rail lines (total route-km)', topics: ['rail', 'railway', 'transport', 'infrastructure'] },
+  { code: 'IS.RRS.GOOD.MT.K6', name: 'Railways goods transported (million ton-km)', topics: ['rail', 'freight', 'transport'] },
+  { code: 'IS.RRS.PASG.KM', name: 'Railways passengers (million passenger-km)', topics: ['rail', 'passenger', 'transport'] },
+  { code: 'IS.AIR.PSGR', name: 'Air transport passengers carried', topics: ['air', 'aviation', 'transport', 'passengers'] },
+  { code: 'IS.AIR.GOOD.MT.K1', name: 'Air transport freight (million ton-km)', topics: ['air', 'aviation', 'freight', 'cargo'] },
+  { code: 'IS.AIR.DPRT', name: 'Air transport registered carrier departures', topics: ['air', 'aviation', 'flights'] },
+  { code: 'IS.SHP.GOOD.TU', name: 'Container port traffic (TEU)', topics: ['port', 'shipping', 'container', 'maritime', 'trade'] },
+  { code: 'IS.SHP.GCNW.XQ', name: 'Liner shipping connectivity index', topics: ['shipping', 'maritime', 'connectivity', 'port'] },
+  { code: 'SH.STA.TRAF.P5', name: 'Road traffic deaths (per 100,000)', topics: ['road', 'traffic', 'safety', 'mortality'] },
+
+  // Economy - GDP
+  { code: 'NY.GDP.MKTP.CD', name: 'GDP (current US$)', topics: ['gdp', 'economy', 'output'] },
+  { code: 'NY.GDP.MKTP.KD.ZG', name: 'GDP growth (annual %)', topics: ['gdp', 'growth', 'economy'] },
+  { code: 'NY.GDP.PCAP.CD', name: 'GDP per capita (current US$)', topics: ['gdp', 'per capita', 'income'] },
+  { code: 'NY.GDP.PCAP.PP.CD', name: 'GDP per capita, PPP (current international $)', topics: ['gdp', 'per capita', 'ppp'] },
+
+  // Trade
+  { code: 'NE.EXP.GNFS.ZS', name: 'Exports of goods and services (% of GDP)', topics: ['exports', 'trade'] },
+  { code: 'NE.IMP.GNFS.ZS', name: 'Imports of goods and services (% of GDP)', topics: ['imports', 'trade'] },
+  { code: 'TG.VAL.TOTL.GD.ZS', name: 'Merchandise trade (% of GDP)', topics: ['trade', 'merchandise'] },
+  { code: 'BX.GSR.TRAN.ZS', name: 'Transport services (% of service exports)', topics: ['transport', 'services', 'exports'] },
+  { code: 'BM.GSR.TRAN.ZS', name: 'Transport services (% of service imports)', topics: ['transport', 'services', 'imports'] },
+
+  // Population & Demographics
+  { code: 'SP.POP.TOTL', name: 'Population, total', topics: ['population', 'demographic'] },
+  { code: 'SP.POP.GROW', name: 'Population growth (annual %)', topics: ['population', 'growth'] },
+  { code: 'SP.URB.TOTL.IN.ZS', name: 'Urban population (% of total)', topics: ['urban', 'population', 'city'] },
+  { code: 'SP.DYN.LE00.IN', name: 'Life expectancy at birth', topics: ['life expectancy', 'health', 'mortality'] },
+
+  // Employment & Labor
+  { code: 'SL.UEM.TOTL.ZS', name: 'Unemployment (% of total labor force)', topics: ['unemployment', 'labor', 'jobs'] },
+  { code: 'SL.TLF.TOTL.IN', name: 'Labor force, total', topics: ['labor', 'workforce', 'employment'] },
+
+  // Poverty & Inequality
+  { code: 'SI.POV.DDAY', name: 'Poverty headcount ratio at $2.15/day', topics: ['poverty', 'poor'] },
+  { code: 'SI.POV.GINI', name: 'Gini index', topics: ['inequality', 'gini', 'income distribution'] },
+
+  // Education
+  { code: 'SE.ADT.LITR.ZS', name: 'Literacy rate, adult total (%)', topics: ['literacy', 'education'] },
+  { code: 'SE.XPD.TOTL.GD.ZS', name: 'Government expenditure on education (% of GDP)', topics: ['education', 'spending', 'government'] },
+  { code: 'SE.PRM.ENRR', name: 'School enrollment, primary (% gross)', topics: ['education', 'school', 'primary'] },
+
+  // Health
+  { code: 'SH.XPD.CHEX.GD.ZS', name: 'Current health expenditure (% of GDP)', topics: ['health', 'spending', 'healthcare'] },
+  { code: 'SH.DYN.MORT', name: 'Mortality rate, under-5 (per 1,000)', topics: ['mortality', 'child', 'health'] },
+
+  // Energy & Environment
+  { code: 'EG.USE.ELEC.KH.PC', name: 'Electric power consumption (kWh per capita)', topics: ['electricity', 'energy', 'power'] },
+  { code: 'EG.ELC.ACCS.ZS', name: 'Access to electricity (% of population)', topics: ['electricity', 'energy', 'access'] },
+  { code: 'EN.ATM.CO2E.PC', name: 'CO2 emissions (metric tons per capita)', topics: ['co2', 'emissions', 'climate', 'environment'] },
+
+  // Technology
+  { code: 'IT.NET.USER.ZS', name: 'Individuals using the Internet (% of population)', topics: ['internet', 'digital', 'technology'] },
+  { code: 'IT.CEL.SETS.P2', name: 'Mobile cellular subscriptions (per 100 people)', topics: ['mobile', 'phone', 'telecom'] },
+
+  // Finance
+  { code: 'FP.CPI.TOTL.ZG', name: 'Inflation, consumer prices (annual %)', topics: ['inflation', 'prices', 'cpi'] },
+  { code: 'FR.INR.RINR', name: 'Real interest rate (%)', topics: ['interest rate', 'finance'] },
+  { code: 'PA.NUS.FCRF', name: 'Official exchange rate (LCU per US$)', topics: ['exchange rate', 'currency', 'forex'] },
+
+  // Agriculture
+  { code: 'AG.LND.AGRI.ZS', name: 'Agricultural land (% of land area)', topics: ['agriculture', 'land', 'farming'] },
+  { code: 'NV.AGR.TOTL.ZS', name: 'Agriculture value added (% of GDP)', topics: ['agriculture', 'gdp', 'farming'] },
+
+  // Business Environment
+  { code: 'IC.BUS.EASE.XQ', name: 'Ease of doing business score', topics: ['business', 'ease', 'regulation'] },
+  { code: 'IC.REG.DURS', name: 'Time required to start a business (days)', topics: ['business', 'startup', 'registration'] },
 ];
 
 function getComtradeCode(country: string): number | undefined {
   const key = country.toLowerCase().trim();
   return COMTRADE_COUNTRY_CODES[key];
 }
-
-// Reverse lookup: code to country name
-const COMTRADE_CODE_TO_NAME: Record<number, string> = Object.entries(COMTRADE_COUNTRY_CODES)
-  .filter(([name]) => name.length > 3) // Skip short codes
-  .reduce((acc, [name, code]) => {
-    // Capitalize properly
-    const properName = name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    if (!acc[code]) acc[code] = properName;
-    return acc;
-  }, {} as Record<number, string>);
 
 function getCountryNameFromCode(code: number): string {
   return COMTRADE_CODE_TO_NAME[code] || `Country (${code})`;
@@ -144,17 +412,55 @@ export async function executeTool(toolName: string, params: Record<string, unkno
     }
 
     if (toolName === 'wb_search_indicators') {
-      const query = params.query as string;
-      const response = await axios.get(
-        `https://api.worldbank.org/v2/indicator?format=json&per_page=100&source=2&search=${encodeURIComponent(query)}`,
-        { timeout: 15000 }
-      );
-      const indicators = response.data[1] || [];
-      return indicators.slice(0, 20).map((i: Record<string, unknown>) => ({
-        code: i.id,
-        name: i.name,
-        description: ((i.sourceNote as string) || '').substring(0, 200)
+      const query = (params.query as string).toLowerCase();
+      const queryTerms = query.split(/\s+/);
+
+      // First, search our curated catalog (more reliable than WB API search)
+      const catalogMatches = WB_INDICATORS_CATALOG.filter(ind => {
+        const nameMatch = ind.name.toLowerCase().includes(query);
+        const topicMatch = ind.topics.some(t =>
+          queryTerms.some(term => t.includes(term) || term.includes(t))
+        );
+        return nameMatch || topicMatch;
+      }).map(ind => ({
+        code: ind.code,
+        name: ind.name,
+        description: `Topics: ${ind.topics.join(', ')}`
       }));
+
+      // If catalog has good matches, return those
+      if (catalogMatches.length >= 3) {
+        console.log(`[WB] Found ${catalogMatches.length} indicators from curated catalog for "${query}"`);
+        return catalogMatches.slice(0, 15);
+      }
+
+      // Also try the WB API search as fallback
+      try {
+        const response = await axios.get(
+          `https://api.worldbank.org/v2/indicator?format=json&per_page=100&source=2&search=${encodeURIComponent(query)}`,
+          { timeout: 15000 }
+        );
+        const apiIndicators = (response.data[1] || []).slice(0, 10).map((i: Record<string, unknown>) => ({
+          code: i.id,
+          name: i.name,
+          description: ((i.sourceNote as string) || '').substring(0, 200)
+        }));
+
+        // Combine catalog and API results, catalog first
+        const combined = [...catalogMatches];
+        for (const api of apiIndicators) {
+          if (!combined.some(c => c.code === api.code)) {
+            combined.push(api);
+          }
+        }
+
+        console.log(`[WB] Returning ${combined.length} indicators (${catalogMatches.length} catalog + ${apiIndicators.length} API) for "${query}"`);
+        return combined.slice(0, 20);
+      } catch (apiErr) {
+        // If API fails, just return catalog matches
+        console.log(`[WB] API search failed, returning ${catalogMatches.length} catalog matches`);
+        return catalogMatches;
+      }
     }
 
     if (toolName === 'wb_get_indicator_data') {
@@ -458,14 +764,34 @@ export async function executeTool(toolName: string, params: Record<string, unkno
       const endYear = params.end_year as number | undefined;
       const forMap = params.for_map as boolean | undefined;
 
+      // Continent names that need special handling
+      const CONTINENTS = ['Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'];
+      const INCOME_GROUPS = ['World', 'High-income countries', 'Low-income countries', 'Middle-income countries', 'European Union'];
+
+      // Check if any requested "countries" are actually continents or regions
+      const requestedContinents = countries?.filter(c =>
+        CONTINENTS.some(cont => cont.toLowerCase() === c.toLowerCase())
+      ) || [];
+      const requestedIncomeGroups = countries?.filter(c =>
+        INCOME_GROUPS.some(ig => ig.toLowerCase() === c.toLowerCase())
+      ) || [];
+      const actualCountries = countries?.filter(c =>
+        !CONTINENTS.some(cont => cont.toLowerCase() === c.toLowerCase()) &&
+        !INCOME_GROUPS.some(ig => ig.toLowerCase() === c.toLowerCase())
+      ) || [];
+
+      // Always fetch full CSV and filter locally for best results
       let url = `https://ourworldindata.org/grapher/${chartSlug}.csv`;
 
-      // Only add csvType=filtered for country filtering (the API doesn't filter by time)
-      if (countries?.length) {
-        url += `?csvType=filtered&country=${countries.map(c => '~' + c).join('')}`;
+      // Only try to use API filtering if we have actual country names (not continents)
+      if (actualCountries.length > 0 && requestedContinents.length === 0 && requestedIncomeGroups.length === 0) {
+        url += `?csvType=filtered&country=${actualCountries.map(c => '~' + c).join('')}`;
       }
 
       console.log(`[OWID] Fetching: ${url}`);
+      console.log(`[OWID] Requested continents: ${requestedContinents.join(', ') || 'none'}`);
+      console.log(`[OWID] Requested countries: ${actualCountries.join(', ') || 'none'}`);
+
       const response = await axios.get(url, { timeout: 30000 });
 
       // Parse CSV
@@ -485,6 +811,32 @@ export async function executeTool(toolName: string, params: Record<string, unkno
           });
           return row;
         });
+
+      // Filter by continent if continents were requested
+      // OWID data often has "World region according to OWID" column
+      if (requestedContinents.length > 0) {
+        const regionColumn = headers.find(h => h.toLowerCase().includes('world region') || h.toLowerCase().includes('region'));
+        if (regionColumn) {
+          console.log(`[OWID] Filtering by continent using column: ${regionColumn}`);
+          data = data.filter(r => {
+            const region = String(r[regionColumn] || '').toLowerCase();
+            return requestedContinents.some(cont => region.includes(cont.toLowerCase()));
+          });
+          console.log(`[OWID] After continent filter: ${data.length} records`);
+        } else {
+          console.log(`[OWID] No region column found in data, cannot filter by continent`);
+        }
+      }
+
+      // Filter by income group if requested
+      if (requestedIncomeGroups.length > 0) {
+        // For income groups, filter by Entity name
+        data = data.filter(r => {
+          const entity = String(r.Entity || r.entity || '').toLowerCase();
+          return requestedIncomeGroups.some(ig => entity.includes(ig.toLowerCase()) || ig.toLowerCase().includes(entity));
+        });
+        console.log(`[OWID] After income group filter: ${data.length} records`);
+      }
 
       // For map visualization: filter to most recent year, return one record per country
       if (forMap && !countries?.length) {

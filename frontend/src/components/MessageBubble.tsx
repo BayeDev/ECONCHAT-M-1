@@ -1,3 +1,4 @@
+"use client";
 /**
  * EconChat M-2 - MessageBubble Component
  * Enhanced message display with source-specific styling and chart rendering
@@ -8,6 +9,7 @@ import { type DataSource } from '../utils/formatters';
 import LineChart from './LineChart';
 import BarChart from './BarChart';
 import MapChart from './MapChart';
+import DataTable from './DataTable';
 
 // Chart data types
 interface ChartDataPoint {
@@ -27,10 +29,17 @@ interface MapDataPoint {
   value: number | null;
 }
 
+// Table data for table chart type
+interface TableData {
+  columns: Array<{ key: string; header: string; type?: string }>;
+  rows: Array<Record<string, unknown>>;
+}
+
 interface ChartData {
-  type: 'line' | 'bar' | 'scatter' | 'area' | 'map';
+  type: 'line' | 'bar' | 'scatter' | 'area' | 'map' | 'table';
   series: ChartSeries[];
   mapData?: MapDataPoint[];
+  tableData?: TableData;
   year?: number;
   title?: string;
   xLabel?: string;
@@ -224,15 +233,15 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} animate-slide-up`}>
       <div
-        className={`max-w-[90%] rounded-2xl px-5 py-4 ${
+        className={`max-w-[90%] rounded-2xl px-5 py-4 transition-colors overflow-visible ${
           isUser
-            ? 'bg-blue-600 text-white'
-            : 'bg-white border border-gray-200 shadow-sm'
+            ? 'bg-wb-blue-600 text-white'
+            : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm'
         }`}
       >
         {/* Message content */}
         <div
-          className={`prose prose-sm max-w-none ${isUser ? 'prose-invert' : ''}`}
+          className={`prose prose-sm max-w-none dark:prose-invert ${isUser ? 'prose-invert' : ''}`}
           style={{
             fontFamily: 'var(--font-body)',
             fontSize: 'var(--text-base)'
@@ -242,9 +251,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
         {/* Chart visualizations - supports multiple charts including maps */}
         {message.charts && message.charts.length > 0 && (
-          <div className="mt-4 space-y-6">
+          <div className="mt-4 space-y-6 overflow-visible">
             {message.charts.map((chart, index) => (
-              <div key={index} className="chart-wrapper">
+              <div key={index} className="chart-wrapper overflow-visible">
                 {chart.type === 'line' && (
                   <LineChart
                     series={chart.series.map(s => ({
@@ -280,13 +289,26 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                     sourceAttribution={index === message.charts!.length - 1 ? message.sources?.join(', ') : undefined}
                   />
                 )}
+                {chart.type === 'table' && chart.tableData && (
+                  <DataTable
+                    columns={chart.tableData.columns.map(col => ({
+                      key: col.key,
+                      header: col.header,
+                      type: (col.type as 'text' | 'number' | 'percent' | 'currency' | 'year' | 'trade') || 'text'
+                    }))}
+                    data={chart.tableData.rows}
+                    title={chart.title}
+                    source={primarySource || 'worldbank'}
+                    sourceAttribution={index === message.charts!.length - 1 ? message.sources?.join(', ') : undefined}
+                  />
+                )}
               </div>
             ))}
           </div>
         )}
         {/* Fallback for single chartData (backward compatible) */}
-        {!message.charts?.length && message.chartData && (message.chartData.series.length > 0 || message.chartData.mapData?.length) && (
-          <div className="mt-4">
+        {!message.charts?.length && message.chartData && (message.chartData.series.length > 0 || message.chartData.mapData?.length || message.chartData.tableData) && (
+          <div className="mt-4 overflow-visible">
             {message.chartData.type === 'line' && (
               <LineChart
                 series={message.chartData.series.map(s => ({
@@ -319,6 +341,19 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 title={message.chartData.title}
                 year={message.chartData.year}
                 valueLabel={message.chartData.yLabel}
+                sourceAttribution={message.sources?.join(', ')}
+              />
+            )}
+            {message.chartData.type === 'table' && message.chartData.tableData && (
+              <DataTable
+                columns={message.chartData.tableData.columns.map(col => ({
+                  key: col.key,
+                  header: col.header,
+                  type: (col.type as 'text' | 'number' | 'percent' | 'currency' | 'year' | 'trade') || 'text'
+                }))}
+                data={message.chartData.tableData.rows}
+                title={message.chartData.title}
+                source={primarySource || 'worldbank'}
                 sourceAttribution={message.sources?.join(', ')}
               />
             )}

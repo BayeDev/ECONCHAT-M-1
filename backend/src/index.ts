@@ -8,8 +8,24 @@ import { chat, getSourcesFromTools } from './claude-client.js';
 import { routedChat, getUsageStats, resetUsageStats, type RoutedChatResponse } from './routed-chat.js';
 import { classifyQuery, getTierName } from './llm_router/router.js';
 
+// Database & Auth imports
+import { connectDatabase, checkDatabaseHealth } from './db/index.js';
+import { webhookRoutes, adminRoutes } from './routes/index.js';
+import { requireAuth, optionalAuth } from './middleware/auth.middleware.js';
+import { checkUserLimits, checkBudgetLimits, checkMaintenanceMode, incrementUserUsage } from './middleware/rateLimit.middleware.js';
+import { usageRepository } from './repositories/usage.repository.js';
+
 const app = express();
 app.use(cors());
+
+// Raw body for webhooks (before express.json)
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), (req, res, next) => {
+  if (Buffer.isBuffer(req.body)) {
+    req.body = JSON.parse(req.body.toString());
+  }
+  next();
+});
+
 app.use(express.json());
 
 // Store conversation history per session (in production, use Redis or DB)
@@ -19,11 +35,17 @@ const sessions: Map<string, Array<{ role: 'user' | 'assistant'; content: string 
 // Defaults to TRUE for cost savings
 let useRouting = process.env.USE_LLM_ROUTING !== 'false';
 
+// ============ WEBHOOK & ADMIN ROUTES ============
+app.use('/api/webhooks', webhookRoutes);
+app.use('/api/admin', adminRoutes);
+
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  const dbHealth = await checkDatabaseHealth();
   res.json({
-    status: 'ok',
+    status: dbHealth ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
+    database: dbHealth ? 'connected' : 'disconnected',
     routing: {
       enabled: useRouting,
       tiers: {
@@ -35,7 +57,13 @@ app.get('/api/health', (req, res) => {
 });
 
 // Chat endpoint - supports both routed and non-routed modes
-app.post('/api/chat', async (req, res) => {
+// Uses optional auth to track usage when user is logged in
+app.post('/api/chat', optionalAuth, checkMaintenanceMode, checkBudgetLimits, async (req, res) => {
+  const startTime = Date.now();
+  let tierUsed = 0;
+  let success = false;
+  let errorMessage = '';
+
   try {
     const { message, sessionId = 'default', forceRouting, forceTier } = req.body;
 
@@ -43,10 +71,21 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
 
+    // Check user limits if authenticated
+    if (req.user) {
+      const limits = req.user.limits;
+      if (limits && limits.dailyQueriesUsed >= limits.dailyQueryLimit) {
+        return res.status(429).json({
+          error: 'Rate limit exceeded',
+          message: 'Daily query limit reached. Please try again tomorrow.',
+        });
+      }
+    }
+
     // Determine if we should use routing for this request
     const shouldRoute = forceRouting !== undefined ? forceRouting : useRouting;
 
-    console.log(`\n[Chat] Session: ${sessionId}, Routing: ${shouldRoute ? 'ON' : 'OFF'}`);
+    console.log(`\n[Chat] Session: ${sessionId}, Routing: ${shouldRoute ? 'ON' : 'OFF'}, User: ${req.user?.email || 'anonymous'}`);
     console.log(`[Chat] Message: ${message.substring(0, 100)}...`);
 
     // Get conversation history
@@ -57,6 +96,7 @@ app.post('/api/chat', async (req, res) => {
     if (shouldRoute) {
       // Use 3-tier routed chat
       const tier = forceTier || classifyQuery(message);
+      tierUsed = tier;
       console.log(`[Router] Classified as Tier ${tier} (${getTierName(tier)})`);
 
       const routedResponse = await routedChat(message, history, {
@@ -89,6 +129,24 @@ app.post('/api/chat', async (req, res) => {
           latencyMs: routedResponse.latencyMs
         }
       };
+
+      // Log usage to database
+      success = true;
+      if (req.user) {
+        await incrementUserUsage(req.user.id);
+        await usageRepository.log({
+          userId: req.user.id,
+          query: message.substring(0, 500),
+          tier: routedResponse.tierUsed === 1 ? 'TIER1' : 'TIER2',
+          model: routedResponse.modelUsed,
+          inputTokens: 0, // Would need to track from API response
+          outputTokens: 0,
+          cost: routedResponse.estimatedCost.toString(),
+          responseTimeMs: routedResponse.latencyMs,
+          toolsUsed: routedResponse.toolsUsed,
+          success: true,
+        });
+      }
     } else {
       // Use original single-model chat (Claude Sonnet)
       const { response, toolsUsed, chartData, charts } = await chat(message, history);
@@ -108,12 +166,35 @@ app.post('/api/chat', async (req, res) => {
         chartData,
         charts
       };
+
+      success = true;
+      if (req.user) {
+        await incrementUserUsage(req.user.id);
+      }
     }
 
     res.json(responseData);
   } catch (error) {
     console.error('[Error]', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    // Log failed request
+    if (req.user) {
+      await usageRepository.log({
+        userId: req.user.id,
+        query: req.body?.message?.substring(0, 500) || '',
+        tier: tierUsed === 1 ? 'TIER1' : 'TIER2',
+        model: '',
+        inputTokens: 0,
+        outputTokens: 0,
+        cost: '0',
+        responseTimeMs: Date.now() - startTime,
+        toolsUsed: [],
+        success: false,
+        errorMessage,
+      });
+    }
+
     res.status(500).json({ error: errorMessage });
   }
 });
@@ -226,19 +307,26 @@ app.get('/api/examples', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`
+
+// Start server with database connection
+async function startServer() {
+  // Connect to database
+  const dbConnected = await connectDatabase();
+
+  app.listen(PORT, () => {
+    console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                     EconChat Backend                      ║
 ║              with 2-Tier LLM Routing                      ║
 ║═══════════════════════════════════════════════════════════║
 ║  Server running on: http://localhost:${PORT}                 ║
+║  Database: ${dbConnected ? 'Connected    ' : 'Not connected'}                               ║
 ║                                                           ║
 ║  LLM Routing: ${useRouting ? 'ENABLED ' : 'DISABLED'}                                    ║
 ║    Tier 1 (Premium):  Claude Opus 4.5  [Complex Analysis] ║
 ║    Tier 2 (Standard): Gemini 2.5 Flash [Everything Else]  ║
 ║                                                           ║
-║  Endpoints:                                               ║
+║  API Endpoints:                                           ║
 ║    POST /api/chat     - Chat with economic data           ║
 ║    POST /api/classify - Preview tier for a query          ║
 ║    POST /api/routing/toggle - Enable/disable routing      ║
@@ -248,6 +336,13 @@ app.listen(PORT, () => {
 ║    GET  /api/tools    - List available tools              ║
 ║    GET  /api/examples - Example queries                   ║
 ║                                                           ║
+║  Admin Endpoints (Auth Required):                         ║
+║    GET  /api/admin/dashboard - Dashboard summary          ║
+║    GET  /api/admin/users     - List/manage users          ║
+║    GET  /api/admin/usage/*   - Usage analytics            ║
+║    GET  /api/admin/settings  - System settings            ║
+║    POST /api/webhooks/clerk  - Clerk user sync            ║
+║                                                           ║
 ║  Data Sources:                                            ║
 ║    - World Bank (WDI indicators)                          ║
 ║    - IMF (WEO forecasts, IFS)                            ║
@@ -255,5 +350,8 @@ app.listen(PORT, () => {
 ║    - UN Comtrade (Trade data)                            ║
 ║    - Our World in Data (Cross-domain)                    ║
 ╚═══════════════════════════════════════════════════════════╝
-  `);
-});
+    `);
+  });
+}
+
+startServer().catch(console.error);

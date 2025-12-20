@@ -247,7 +247,7 @@ export const allTools = [
   },
   {
     name: "owid_get_chart_data",
-    description: "Get data from an Our World in Data chart. Common charts: life-expectancy, gdp-per-capita-worldbank, share-of-population-in-extreme-poverty, human-development-index, co2-emissions-per-capita, literacy-rate-adult-total. For world/global maps, set for_map=true to get all countries for a single year.",
+    description: "Get data from an Our World in Data chart. SUPPORTS CONTINENTS AND REGIONS - pass continent names like 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania', or aggregates like 'World', 'High-income countries', 'Low-income countries'. Common charts: life-expectancy, gdp-per-capita-worldbank, share-of-population-in-extreme-poverty, human-development-index, co2-emissions-per-capita, literacy-rate-adult-total. For world/global maps, set for_map=true.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -258,7 +258,7 @@ export const allTools = [
         countries: {
           type: "array",
           items: { type: "string" },
-          description: "Country names (e.g., ['Japan', 'United States', 'Bangladesh'])"
+          description: "Country names, CONTINENTS, or regions. For continents use: 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania'. Also supports 'World', 'High-income countries', 'Low-income countries', 'European Union'. Examples: ['Africa', 'Asia', 'Europe'] for continent comparison, ['Japan', 'United States'] for country comparison"
         },
         start_year: { type: "number" },
         end_year: { type: "number" },

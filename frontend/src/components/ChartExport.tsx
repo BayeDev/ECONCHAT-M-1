@@ -386,6 +386,11 @@ export default function ChartExport({ data, chartRef, filename = 'chart' }: Char
   const [isOpen, setIsOpen] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
 
+  // Debug log
+  if (typeof window !== 'undefined') {
+    console.log('[ChartExport] Rendering export button for:', filename);
+  }
+
   const handleExport = useCallback(async (format: 'csv' | 'svg' | 'png' | 'pdf') => {
     setExporting(format);
 
@@ -413,13 +418,25 @@ export default function ChartExport({ data, chartRef, filename = 'chart' }: Char
   }, [data, chartRef, filename]);
 
   return (
-    <div className="relative ml-2">
+    <div className="relative flex-shrink-0" style={{ minWidth: '80px' }}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '6px 12px',
+          fontSize: '12px',
+          fontWeight: 500,
+          color: '#2563eb',
+          backgroundColor: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '6px',
+          cursor: 'pointer'
+        }}
         title="Export chart"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
         </svg>
@@ -427,32 +444,32 @@ export default function ChartExport({ data, chartRef, filename = 'chart' }: Char
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 py-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+        <div className="absolute right-0 mt-1 py-1 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-600 z-50">
           <button
             onClick={() => handleExport('csv')}
             disabled={!!exporting}
-            className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
           >
             {exporting === 'csv' ? 'Exporting...' : 'CSV Data'}
           </button>
           <button
             onClick={() => handleExport('svg')}
             disabled={!!exporting}
-            className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
           >
             {exporting === 'svg' ? 'Exporting...' : 'SVG Image'}
           </button>
           <button
             onClick={() => handleExport('png')}
             disabled={!!exporting}
-            className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
           >
             {exporting === 'png' ? 'Exporting...' : 'PNG Image'}
           </button>
           <button
             onClick={() => handleExport('pdf')}
             disabled={!!exporting}
-            className="w-full px-3 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 disabled:opacity-50"
           >
             {exporting === 'pdf' ? 'Exporting...' : 'PDF Report'}
           </button>

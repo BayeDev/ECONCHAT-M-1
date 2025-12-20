@@ -80,6 +80,8 @@ Use tables for comparing data. Be thorough but concise.`
 // Extended system prompt with tool descriptions
 const TOOL_SYSTEM_PROMPT = `You are EconChat, an AI assistant specialized in helping economists and researchers query and analyze economic data from multiple international sources.
 
+IMPORTANT: You MUST use the data tools to answer questions about economic data. Do NOT provide generic answers without fetching actual data. Always use the appropriate tool to get real data.
+
 You have access to tools from 5 major data sources:
 
 1. **World Bank** (wb_*) - Development indicators: GDP, population, poverty, health, education
@@ -96,8 +98,11 @@ You have access to tools from 5 major data sources:
 4. **UN Comtrade** (comtrade_*) - International trade data
    - Bilateral trade flows, top trading partners
 
-5. **Our World in Data** (owid_*) - Cross-domain curated indicators
-   - Life expectancy, CO2, human development
+5. **Our World in Data** (owid_*) - Cross-domain curated indicators (BEST FOR LONG-TERM TRENDS)
+   - Life expectancy, CO2, human development, mortality, education
+   - SUPPORTS CONTINENTS: Use 'Africa', 'Asia', 'Europe', 'North America', 'South America', 'Oceania' as country names
+   - Also supports: 'World', 'High-income countries', 'Low-income countries'
+   - Use owid_get_chart_data with chart_slug='life-expectancy' and countries=['Africa', 'Asia', 'Europe'] for continent comparison
    - Use for_map=true for world maps
 
 CRITICAL - COUNTRY CODE ACCURACY:
@@ -107,12 +112,15 @@ CRITICAL - COUNTRY CODE ACCURACY:
 - Other commonly confused: Congo Republic (COG) vs DR Congo (COD)
 
 GUIDELINES:
-1. Choose the most appropriate data source
-2. Search for indicator codes if needed
-3. Use tables for multiple values
-4. Always cite the data source
-5. Format numbers nicely (billions, millions)
-6. VERIFY you are using the correct country code for the country mentioned`;
+1. ALWAYS use tools to fetch data - never make up numbers
+2. For life expectancy, health, and long-term trends -> use OWID tools
+3. For GDP forecasts and macro data -> use IMF tools
+4. For development indicators -> use World Bank tools
+5. For agricultural data -> use FAO tools
+6. For trade data -> use UN Comtrade tools
+7. Use tables for multiple values
+8. Always cite the data source
+9. Format numbers nicely (billions, millions)`;
 
 interface Message {
   role: 'user' | 'assistant';
@@ -636,21 +644,44 @@ function extractAllChartData(
   collectedData: Array<{ tool: string; result: unknown }>,
   userMessage: string
 ): ChartData[] {
-  // Delegate to the existing implementation
-  // This is a simplified placeholder - the real implementation is in claude-client.ts
   const charts: ChartData[] = [];
 
   for (const { tool, result } of collectedData) {
     if (!result || typeof result !== 'object') continue;
 
+    // OWID data
     if ((tool === 'owid_get_chart_data' || tool === 'owid_get_data') && Array.isArray(result)) {
-      // Parse OWID data into chart format
       const chartData = parseOWIDDataSimple(result, userMessage);
       if (chartData) charts.push(chartData);
     }
 
+    // World Bank data
     if ((tool === 'wb_get_indicator' || tool === 'wb_get_indicator_data') && Array.isArray(result)) {
       const chartData = parseWorldBankDataSimple(result);
+      if (chartData) charts.push(chartData);
+    }
+
+    // UN Comtrade data - top partners
+    if (tool === 'comtrade_get_top_partners' && Array.isArray(result)) {
+      const chartData = parseComtradeTopPartners(result);
+      if (chartData) charts.push(chartData);
+    }
+
+    // UN Comtrade data - trade flow
+    if (tool === 'comtrade_get_trade_data' && Array.isArray(result)) {
+      const chartData = parseComtradeTradeData(result);
+      if (chartData) charts.push(chartData);
+    }
+
+    // IMF data
+    if ((tool === 'imf_get_indicator' || tool === 'imf_get_weo_data') && Array.isArray(result)) {
+      const chartData = parseIMFData(result);
+      if (chartData) charts.push(chartData);
+    }
+
+    // FAO data
+    if ((tool === 'fao_get_data' || tool === 'fao_get_production') && Array.isArray(result)) {
+      const chartData = parseFAOData(result);
       if (chartData) charts.push(chartData);
     }
   }
@@ -798,6 +829,178 @@ function parseWorldBankDataSimple(data: unknown[]): ChartData | null {
     title: cleanTitle,
     xLabel: 'Year',
     yLabel: cleanTitle
+  };
+}
+
+// Parse UN Comtrade top partners data into bar chart
+function parseComtradeTopPartners(data: unknown[]): ChartData | null {
+  if (!data || data.length === 0) return null;
+
+  const barData: Array<{ x: number | string; y: number | null }> = [];
+
+  for (const item of data) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+
+    // Handle different field names from tool-executor return format
+    const partner = record.partner || record.partnerDesc || record.partnerCode;
+    const value = record.tradeValue || record.primaryValue || record.TradeValue || record.value;
+
+    if (typeof partner === 'string' && typeof value === 'number') {
+      barData.push({
+        x: partner,
+        y: value
+      });
+    }
+  }
+
+  if (barData.length === 0) return null;
+
+  // Sort by value descending and take top 10
+  barData.sort((a, b) => (b.y || 0) - (a.y || 0));
+  const top10 = barData.slice(0, 10);
+
+  return {
+    type: 'bar',
+    series: [{
+      name: 'Trade Value',
+      data: top10
+    }],
+    title: 'Top Trade Partners',
+    xLabel: 'Partner',
+    yLabel: 'Trade Value (USD)'
+  };
+}
+
+// Parse UN Comtrade trade flow data
+function parseComtradeTradeData(data: unknown[]): ChartData | null {
+  if (!data || data.length === 0) return null;
+
+  const seriesMap = new Map<string, Array<{ x: number; y: number | null }>>();
+
+  for (const item of data) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+
+    const year = record.period || record.year;
+    const value = record.primaryValue || record.TradeValue || record.value;
+    const flowDesc = record.flowDesc || record.flow || 'Trade';
+
+    if (typeof year === 'number' && typeof value === 'number') {
+      const seriesName = typeof flowDesc === 'string' ? flowDesc : 'Trade';
+      if (!seriesMap.has(seriesName)) seriesMap.set(seriesName, []);
+      seriesMap.get(seriesName)!.push({ x: year, y: value });
+    }
+  }
+
+  if (seriesMap.size === 0) return null;
+
+  const series = Array.from(seriesMap.entries()).map(([name, points]) => ({
+    name,
+    data: points.sort((a, b) => a.x - b.x)
+  }));
+
+  return {
+    type: 'line',
+    series,
+    title: 'Trade Flow',
+    xLabel: 'Year',
+    yLabel: 'Trade Value (USD)'
+  };
+}
+
+// Parse IMF WEO data
+function parseIMFData(data: unknown[]): ChartData | null {
+  if (!data || data.length === 0) return null;
+
+  const seriesMap = new Map<string, Array<{ x: number; y: number | null }>>();
+  let indicatorName = 'Value';
+
+  for (const item of data) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+
+    const country = record.country || record['@UNIT'] || record.ISO;
+    const year = record.year || record['@TIME_PERIOD'];
+    const value = record.value || record['@OBS_VALUE'];
+
+    if (typeof record.indicator === 'string' && indicatorName === 'Value') {
+      indicatorName = record.indicator;
+    }
+
+    if (typeof country === 'string' && year) {
+      const yearNum = typeof year === 'number' ? year : parseInt(String(year));
+      if (!isNaN(yearNum)) {
+        if (!seriesMap.has(country)) seriesMap.set(country, []);
+        seriesMap.get(country)!.push({
+          x: yearNum,
+          y: typeof value === 'number' ? value : null
+        });
+      }
+    }
+  }
+
+  if (seriesMap.size === 0) return null;
+
+  const series = Array.from(seriesMap.entries()).map(([name, points]) => ({
+    name,
+    data: points.sort((a, b) => a.x - b.x)
+  }));
+
+  return {
+    type: 'line',
+    series,
+    title: indicatorName,
+    xLabel: 'Year',
+    yLabel: indicatorName
+  };
+}
+
+// Parse FAO data
+function parseFAOData(data: unknown[]): ChartData | null {
+  if (!data || data.length === 0) return null;
+
+  const seriesMap = new Map<string, Array<{ x: number; y: number | null }>>();
+  let indicatorName = 'Value';
+
+  for (const item of data) {
+    if (!item || typeof item !== 'object') continue;
+    const record = item as Record<string, unknown>;
+
+    const country = record.Area || record.area || record.country;
+    const year = record.Year || record.year;
+    const value = record.Value || record.value;
+    const element = record.Element || record.element;
+
+    if (typeof element === 'string' && indicatorName === 'Value') {
+      indicatorName = element;
+    }
+
+    if (typeof country === 'string' && year) {
+      const yearNum = typeof year === 'number' ? year : parseInt(String(year));
+      if (!isNaN(yearNum)) {
+        if (!seriesMap.has(country)) seriesMap.set(country, []);
+        seriesMap.get(country)!.push({
+          x: yearNum,
+          y: typeof value === 'number' ? value : null
+        });
+      }
+    }
+  }
+
+  if (seriesMap.size === 0) return null;
+
+  const series = Array.from(seriesMap.entries()).map(([name, points]) => ({
+    name,
+    data: points.sort((a, b) => a.x - b.x)
+  }));
+
+  return {
+    type: 'line',
+    series,
+    title: indicatorName,
+    xLabel: 'Year',
+    yLabel: indicatorName
   };
 }
 

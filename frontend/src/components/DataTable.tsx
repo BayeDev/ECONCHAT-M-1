@@ -1,3 +1,4 @@
+"use client";
 /**
  * EconChat M-2 - DataTable Component
  * Renders data tables with source-specific styling

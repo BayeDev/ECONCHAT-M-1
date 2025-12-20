@@ -1,3 +1,4 @@
+"use client";
 /**
  * EconChat M-2 - AreaChart Component
  * Stacked area chart for composition over time (OWID-style)

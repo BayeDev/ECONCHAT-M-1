@@ -1,3 +1,4 @@
+"use client";
 /**
  * EconChat M-2 - ScatterChart Component
  * Gapminder-style bubble chart with continent coloring
