@@ -1,14 +1,16 @@
+"use client";
 /**
  * EconChat M-2 - BarChart Component
  * SVG-based bar chart with World Bank DataBank styling
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import {
   formatLargeNumber,
   formatPercent,
   getSeriesColor
 } from '../utils/formatters';
+import ChartExport from './ChartExport';
 
 export interface BarData {
   label: string;
@@ -51,6 +53,7 @@ export default function BarChart({
     y: number;
     content: { label: string; value: string };
   } | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   // Chart dimensions
   const width = 680;
@@ -149,17 +152,38 @@ export default function BarChart({
   // Zero line position
   const zeroPosition = valueScale(0);
 
+  // Convert bar data to series format for export
+  const exportSeries = useMemo(() => [{
+    name: title || 'Data',
+    data: data.map(d => ({ x: d.label, y: d.value }))
+  }], [data, title]);
+
   return (
-    <div className="chart-container animate-fade-in" style={{ maxWidth: width }}>
-      {/* Title */}
-      {title && <h3 className="chart-title">{title}</h3>}
-      {subtitle && <p className="chart-subtitle">{subtitle}</p>}
+    <div className="chart-container animate-fade-in" style={{ maxWidth: width }} ref={chartRef}>
+      {/* Header with title and export */}
+      <div className="chart-header flex items-start justify-between mb-2">
+        <div className="flex-1">
+          {title && <h3 className="chart-title">{title}</h3>}
+          {subtitle && <p className="chart-subtitle">{subtitle}</p>}
+        </div>
+        {/* Export button */}
+        <ChartExport
+          data={{
+            title: title,
+            series: exportSeries,
+            source: sourceAttribution
+          }}
+          chartRef={chartRef}
+          filename={title?.toLowerCase().replace(/\s+/g, '-') || 'chart-data'}
+        />
+      </div>
 
       {/* SVG Chart */}
       <svg
         width="100%"
         viewBox={`0 0 ${width} ${height}`}
-        className="overflow-visible"
+        className="overflow-visible chart-svg"
+        data-chart="true"
         onMouseLeave={() => {
           setHoveredIndex(null);
           setTooltip(null);

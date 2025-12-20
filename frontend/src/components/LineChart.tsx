@@ -1,3 +1,4 @@
+"use client";
 /**
  * EconChat M-2 - LineChart Component
  * SVG-based line chart with OWID-style inline legends and typography
@@ -9,12 +10,13 @@
  * - Dashed lines for forecasts/projections
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import {
   formatLargeNumber,
   formatPercent,
   getSeriesColor
 } from '../utils/formatters';
+import ChartExport from './ChartExport';
 
 export interface DataPoint {
   x: number | string;
@@ -70,10 +72,11 @@ export default function LineChart({
     y: number;
     content: { series: string; x: string; y: string };
   } | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
 
-  // Chart dimensions
-  const width = 680;
-  const margin = { top: 20, right: directLabeling ? 100 : 20, bottom: 50, left: 60 };
+  // Chart dimensions - increased left margin for Y-axis label
+  const width = 720;
+  const margin = { top: 20, right: directLabeling ? 100 : 20, bottom: 50, left: 80 };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
 
@@ -209,30 +212,46 @@ export default function LineChart({
   };
 
   return (
-    <div className="chart-container animate-fade-in" style={{ maxWidth: width }}>
-      {/* Title - OWID: Georgia/Playfair 24px, semibold */}
-      {title && (
-        <h3
-          className="chart-title"
-          style={{ fontFamily: "var(--font-display, 'Georgia'), Georgia, serif", fontSize: '24px' }}
-        >
-          {title}
-        </h3>
-      )}
-      {subtitle && (
-        <p
-          className="chart-subtitle"
-          style={{ fontFamily: "var(--font-body, 'Lato'), Lato, sans-serif", fontSize: '14px' }}
-        >
-          {subtitle}
-        </p>
-      )}
+    <div className="chart-container animate-fade-in" style={{ maxWidth: width }} ref={chartRef}>
+      {/* Header with title and export */}
+      <div className="chart-header flex items-start justify-between mb-2">
+        <div className="flex-1">
+          {/* Title - OWID: Georgia/Playfair 24px, semibold */}
+          {title && (
+            <h3
+              className="chart-title"
+              style={{ fontFamily: "var(--font-display, 'Georgia'), Georgia, serif", fontSize: '24px' }}
+            >
+              {title}
+            </h3>
+          )}
+          {subtitle && (
+            <p
+              className="chart-subtitle"
+              style={{ fontFamily: "var(--font-body, 'Lato'), Lato, sans-serif", fontSize: '14px' }}
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
+        {/* Export button */}
+        <ChartExport
+          data={{
+            title: title,
+            series: series.map(s => ({ name: s.name, data: s.data.map(d => ({ x: d.x, y: d.y })) })),
+            source: sourceAttribution
+          }}
+          chartRef={chartRef}
+          filename={title?.toLowerCase().replace(/\s+/g, '-') || 'chart-data'}
+        />
+      </div>
 
       {/* SVG Chart */}
       <svg
         width="100%"
         viewBox={`0 0 ${width} ${height}`}
-        className="overflow-visible"
+        className="overflow-visible chart-svg"
+        data-chart="true"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setTooltip(null)}
       >
@@ -300,12 +319,13 @@ export default function LineChart({
           ))}
           {yLabel && (
             <text
-              x={-height / 2}
-              y={15}
+              x={-(margin.top + innerHeight / 2)}
+              y={20}
               transform="rotate(-90)"
               textAnchor="middle"
               fontSize="12"
               fill="var(--text-secondary)"
+              style={{ fontFamily: 'var(--font-body), Lato, sans-serif' }}
             >
               {yLabel}
             </text>
