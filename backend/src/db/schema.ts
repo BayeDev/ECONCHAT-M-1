@@ -154,6 +154,62 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   }),
 }));
 
+// ============================================
+// MDB-Specific Enhancement Tables (Phase 1)
+// ============================================
+
+// Enums for data quality
+export const sourceTypeEnum = pgEnum('source_type', ['official', 'estimate', 'projection', 'imputed']);
+export const dataFrequencyEnum = pgEnum('data_frequency', ['annual', 'quarterly', 'monthly', 'daily']);
+
+// Data Quality Metadata - tracks quality info for each indicator/source combination
+export const dataQualityMetadata = pgTable('data_quality_metadata', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  source: text('source').notNull(), // 'worldbank', 'imf', 'fao', 'comtrade', 'owid'
+  indicatorCode: text('indicator_code').notNull(),
+  indicatorName: text('indicator_name'),
+  lastUpdated: timestamp('last_updated'),
+  dataFrequency: dataFrequencyEnum('data_frequency').default('annual'),
+  coverageStart: integer('coverage_start'), // First year with data
+  coverageEnd: integer('coverage_end'),     // Last year with data
+  countryCount: integer('country_count'),   // Number of countries with data
+  qualityScore: decimal('quality_score', { precision: 3, scale: 2 }), // 0.00-1.00
+  sourceType: sourceTypeEnum('source_type').default('official'),
+  methodology: text('methodology'),
+  sourceUrl: text('source_url'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  sourceIndicatorIdx: index('dqm_source_indicator_idx').on(table.source, table.indicatorCode),
+  sourceIdx: index('dqm_source_idx').on(table.source),
+  qualityScoreIdx: index('dqm_quality_score_idx').on(table.qualityScore),
+}));
+
+// Citation Templates - templates for generating citations by source
+export const citationTemplates = pgTable('citation_templates', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  source: text('source').unique().notNull(), // 'worldbank', 'imf', 'fao', 'comtrade', 'owid'
+  sourceName: text('source_name').notNull(), // Full name: "World Bank World Development Indicators"
+  apaTemplate: text('apa_template').notNull(),
+  chicagoTemplate: text('chicago_template').notNull(),
+  harvardTemplate: text('harvard_template').notNull(),
+  mlaTemplate: text('mla_template').notNull(),
+  bibtexTemplate: text('bibtex_template').notNull(),
+  worldBankTemplate: text('world_bank_template'), // World Bank internal format
+  imfTemplate: text('imf_template'),              // IMF internal format
+  baseUrl: text('base_url'),                      // Base URL for data source
+  accessDateRequired: boolean('access_date_required').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  sourceIdx: index('ct_source_idx').on(table.source),
+}));
+
+// Relations for new tables
+export const dataQualityMetadataRelations = relations(dataQualityMetadata, ({ }) => ({}));
+export const citationTemplatesRelations = relations(citationTemplates, ({ }) => ({}));
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -167,3 +223,9 @@ export type WaitingListEntry = typeof waitingList.$inferSelect;
 export type NewWaitingListEntry = typeof waitingList.$inferInsert;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type NewAuditLog = typeof auditLogs.$inferInsert;
+
+// MDB Enhancement types
+export type DataQualityMetadata = typeof dataQualityMetadata.$inferSelect;
+export type NewDataQualityMetadata = typeof dataQualityMetadata.$inferInsert;
+export type CitationTemplate = typeof citationTemplates.$inferSelect;
+export type NewCitationTemplate = typeof citationTemplates.$inferInsert;

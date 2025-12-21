@@ -8,6 +8,7 @@
  * - UN Comtrade coverage quality indicators
  * - IMF forecast cell highlighting
  * - Trade flow coloring (exports blue, imports red)
+ * - Data quality badge integration (MDB Enhancement)
  */
 
 import { useState, useMemo } from 'react';
@@ -21,6 +22,7 @@ import {
   type DataSource,
   type FAOFlag
 } from '../utils/formatters';
+import DataQualityBadge, { DataQualityMetadata, SourceType } from './DataQualityBadge';
 
 export interface Column {
   key: string;
@@ -45,10 +47,21 @@ export interface DataTableProps {
   highlightForecasts?: boolean;
   showFAOFlags?: boolean;       // Show FAO flag superscripts
   showCoverageIndicator?: boolean;  // Show UN Comtrade coverage dots
+  showQualityBadge?: boolean;   // Show MDB data quality badge
+  qualityMetadata?: Partial<DataQualityMetadata>;  // Optional quality metadata
   maxHeight?: string;
 }
 
 type SortDirection = 'asc' | 'desc' | null;
+
+// Helper to map source to source type
+const SOURCE_TYPE_MAP: Record<DataSource, SourceType> = {
+  worldbank: 'official',
+  imf: 'official',
+  fao: 'official',
+  comtrade: 'official',
+  owid: 'estimate',
+};
 
 export default function DataTable({
   columns,
@@ -62,6 +75,8 @@ export default function DataTable({
   highlightForecasts = true,
   showFAOFlags = true,
   showCoverageIndicator = true,
+  showQualityBadge = false,
+  qualityMetadata,
   maxHeight
 }: DataTableProps) {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
@@ -253,13 +268,33 @@ export default function DataTable({
     return classes.join(' ');
   };
 
+  // Build quality metadata for badge
+  const defaultQualityMetadata: DataQualityMetadata = useMemo(() => ({
+    source,
+    sourceType: SOURCE_TYPE_MAP[source] || 'official',
+    indicatorName: title,
+    ...qualityMetadata,
+  }), [source, title, qualityMetadata]);
+
   return (
     <div className="animate-slide-up">
-      {/* Title and subtitle */}
-      {(title || subtitle) && (
+      {/* Title, subtitle, and quality badge */}
+      {(title || subtitle || showQualityBadge) && (
         <div className="mb-3">
-          {title && <h3 className="chart-title text-lg">{title}</h3>}
-          {subtitle && <p className="chart-subtitle text-sm">{subtitle}</p>}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              {title && <h3 className="chart-title text-lg">{title}</h3>}
+              {subtitle && <p className="chart-subtitle text-sm">{subtitle}</p>}
+            </div>
+            {showQualityBadge && (
+              <DataQualityBadge
+                metadata={defaultQualityMetadata}
+                size="sm"
+                showLabel={true}
+                showTooltip={true}
+              />
+            )}
+          </div>
         </div>
       )}
 
