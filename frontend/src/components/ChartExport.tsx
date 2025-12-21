@@ -27,12 +27,15 @@ interface Series {
 
 interface ChartExportData {
   title?: string;
-  series: Series[];
+  series?: Series[];
   source?: string;
   // Citation metadata (optional)
   indicator?: string;
   indicatorCode?: string;
+  country?: string;
   year?: number | string;
+  years?: number[];
+  values?: number[];
 }
 
 interface ChartExportProps {

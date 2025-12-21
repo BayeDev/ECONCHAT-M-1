@@ -4,7 +4,7 @@
  * Tests Data Quality Badge and Citation Generator
  */
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import DataTable, { Column } from '../../components/DataTable';
 import DataQualityBadge, { DataQualityMetadata } from '../../components/DataQualityBadge';
 import ChartExport from '../../components/ChartExport';
@@ -51,6 +51,9 @@ const qualityMetadata: DataQualityMetadata = {
 export default function TestFeaturesPage() {
   const [citationResult, setCitationResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Ref for chart export
+  const chartRef = useRef<HTMLDivElement>(null);
 
   // Test citation API
   const testCitationAPI = async (format: string) => {
@@ -147,7 +150,7 @@ export default function TestFeaturesPage() {
             Charts include an export dropdown with citation copy functionality:
           </p>
 
-          <div className="border rounded-lg p-4">
+          <div className="border rounded-lg p-4" ref={chartRef}>
             <div className="flex justify-between items-start mb-2">
               <div>
                 <h3 className="font-medium">Nigeria GDP Growth (2019-2025)</h3>
@@ -163,6 +166,7 @@ export default function TestFeaturesPage() {
                   years: [2019, 2020, 2021, 2022, 2023],
                   values: [2.3, -1.8, 3.6, 3.1, 2.9],
                 }}
+                chartRef={chartRef}
                 filename="nigeria-gdp-growth"
               />
             </div>
