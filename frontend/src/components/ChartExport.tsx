@@ -85,7 +85,7 @@ const SOURCE_CITATION_CONFIG: Record<string, {
 // ============================================
 
 function exportToCSV(data: ChartExportData, filename: string): void {
-  const { title, series, source } = data;
+  const { title, series = [], source, years, values, country } = data;
   const lines: string[] = [];
 
   // Add title as comment if present
@@ -93,31 +93,40 @@ function exportToCSV(data: ChartExportData, filename: string): void {
     lines.push(`# ${title}`);
   }
 
-  // Build header row: first column is X values, then each series name
-  const headers = ['Year/Category', ...series.map(s => s.name)];
-  lines.push(headers.join(','));
-
-  // Collect all unique X values across all series
-  const allXValues = new Set<string | number>();
-  series.forEach(s => s.data.forEach(d => allXValues.add(d.x)));
-
-  // Sort X values (numeric if possible)
-  const sortedX = Array.from(allXValues).sort((a, b) => {
-    const numA = Number(a);
-    const numB = Number(b);
-    if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-    return String(a).localeCompare(String(b));
-  });
-
-  // Build data rows
-  sortedX.forEach(xVal => {
-    const row: (string | number)[] = [xVal];
-    series.forEach(s => {
-      const point = s.data.find(d => d.x === xVal);
-      row.push(point?.y !== null && point?.y !== undefined ? point.y : '');
+  // If we have years/values arrays (simple format), use those
+  if (years && values && years.length > 0) {
+    const headers = ['Year', country || 'Value'];
+    lines.push(headers.join(','));
+    years.forEach((year, i) => {
+      lines.push(`${year},${values[i] ?? ''}`);
     });
-    lines.push(row.join(','));
-  });
+  } else if (series.length > 0) {
+    // Build header row: first column is X values, then each series name
+    const headers = ['Year/Category', ...series.map(s => s.name)];
+    lines.push(headers.join(','));
+
+    // Collect all unique X values across all series
+    const allXValues = new Set<string | number>();
+    series.forEach(s => s.data.forEach(d => allXValues.add(d.x)));
+
+    // Sort X values (numeric if possible)
+    const sortedX = Array.from(allXValues).sort((a, b) => {
+      const numA = Number(a);
+      const numB = Number(b);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return String(a).localeCompare(String(b));
+    });
+
+    // Build data rows
+    sortedX.forEach(xVal => {
+      const row: (string | number)[] = [xVal];
+      series.forEach(s => {
+        const point = s.data.find(d => d.x === xVal);
+        row.push(point?.y !== null && point?.y !== undefined ? point.y : '');
+      });
+      lines.push(row.join(','));
+    });
+  }
 
   // Add source as comment if present
   if (source) {
