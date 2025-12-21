@@ -55,13 +55,22 @@ export default function BarChart({
   } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  // Chart dimensions
-  const width = 680;
+  // Chart dimensions - use smaller viewBox so text appears larger when scaled
+  const width = 400;
+  const chartHeight = 260;
   const margin = orientation === 'horizontal'
-    ? { top: 20, right: 80, bottom: 30, left: 120 }
-    : { top: 20, right: 20, bottom: 60, left: 60 };
+    ? { top: 15, right: 65, bottom: 35, left: 100 }
+    : { top: 25, right: 15, bottom: 60, left: 55 };
   const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
+  const innerHeight = chartHeight - margin.top - margin.bottom;
+
+  // Font sizes - larger to compensate for SVG scaling
+  const fontSize = {
+    axis: 14,
+    axisTitle: 13,
+    valueLabel: 13,
+    categoryLabel: 13
+  };
 
   // Filter out null values
   const validData = data.filter(d => d.value !== null) as (BarData & { value: number })[];
@@ -161,10 +170,21 @@ export default function BarChart({
   return (
     <div className="chart-container animate-fade-in" style={{ maxWidth: width }} ref={chartRef}>
       {/* Header with title and export */}
-      <div className="flex items-start justify-between mb-3 gap-4">
+      <div className="flex items-start justify-between mb-2 gap-3">
         <div className="flex-1 min-w-0">
-          {title && <h3 className="chart-title">{title}</h3>}
-          {subtitle && <p className="chart-subtitle">{subtitle}</p>}
+          {title && (
+            <h3
+              className="chart-title text-base font-semibold text-gray-800 dark:text-slate-200"
+              style={{ fontFamily: "var(--font-body, 'Inter'), Inter, sans-serif" }}
+            >
+              {title}
+            </h3>
+          )}
+          {subtitle && (
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
+              {subtitle}
+            </p>
+          )}
         </div>
         {/* Export button - always visible */}
         <div className="flex-shrink-0">
@@ -183,8 +203,9 @@ export default function BarChart({
       {/* SVG Chart */}
       <svg
         width="100%"
-        viewBox={`0 0 ${width} ${height}`}
+        viewBox={`0 0 ${width} ${chartHeight}`}
         className="overflow-visible chart-svg"
+        style={{ maxHeight: height }}
         data-chart="true"
         onMouseLeave={() => {
           setHoveredIndex(null);
@@ -201,7 +222,7 @@ export default function BarChart({
                   x1={margin.left + valueScale(tick)}
                   x2={margin.left + valueScale(tick)}
                   y1={margin.top}
-                  y2={height - margin.bottom}
+                  y2={chartHeight - margin.bottom}
                   stroke="var(--grid-line)"
                   strokeWidth={1}
                 />
@@ -227,7 +248,7 @@ export default function BarChart({
               x1={margin.left + zeroPosition}
               x2={margin.left + zeroPosition}
               y1={margin.top}
-              y2={height - margin.bottom}
+              y2={chartHeight - margin.bottom}
               stroke="var(--border-medium)"
               strokeWidth={1}
             />
@@ -277,25 +298,27 @@ export default function BarChart({
                 {/* Value label */}
                 {showValues && (
                   <text
-                    x={x + barLength + 5}
+                    x={x + barLength + 8}
                     y={y + actualBarWidth / 2}
                     dominantBaseline="middle"
-                    fontSize="11"
-                    fill="var(--text-secondary)"
+                    fontSize={fontSize.valueLabel}
+                    fontWeight="600"
+                    fill="var(--text-primary)"
                   >
                     {formatValue(d.value)}
                   </text>
                 )}
                 {/* Category label */}
                 <text
-                  x={margin.left - 8}
+                  x={margin.left - 10}
                   y={y + actualBarWidth / 2}
                   textAnchor="end"
                   dominantBaseline="middle"
-                  fontSize="12"
+                  fontSize={fontSize.categoryLabel}
+                  fontWeight="500"
                   fill="var(--text-primary)"
                 >
-                  {d.label}
+                  {d.label.length > 14 ? d.label.slice(0, 14) + '...' : d.label}
                 </text>
               </g>
             );
@@ -327,10 +350,11 @@ export default function BarChart({
                 {showValues && (
                   <text
                     x={x + actualBarWidth / 2}
-                    y={y - 5}
+                    y={y - 8}
                     textAnchor="middle"
-                    fontSize="11"
-                    fill="var(--text-secondary)"
+                    fontSize={fontSize.valueLabel}
+                    fontWeight="600"
+                    fill="var(--text-primary)"
                   >
                     {formatValue(d.value)}
                   </text>
@@ -338,13 +362,14 @@ export default function BarChart({
                 {/* Category label */}
                 <text
                   x={x + actualBarWidth / 2}
-                  y={height - margin.bottom + 15}
+                  y={chartHeight - margin.bottom + 16}
                   textAnchor="middle"
-                  fontSize="11"
+                  fontSize={fontSize.categoryLabel}
+                  fontWeight="500"
                   fill="var(--text-primary)"
-                  transform={`rotate(-45, ${x + actualBarWidth / 2}, ${height - margin.bottom + 15})`}
+                  transform={`rotate(-35, ${x + actualBarWidth / 2}, ${chartHeight - margin.bottom + 16})`}
                 >
-                  {d.label.length > 12 ? d.label.slice(0, 12) + '...' : d.label}
+                  {d.label.length > 10 ? d.label.slice(0, 10) + '...' : d.label}
                 </text>
               </g>
             );
@@ -358,9 +383,10 @@ export default function BarChart({
               <text
                 key={i}
                 x={margin.left + valueScale(tick)}
-                y={height - margin.bottom + 15}
+                y={chartHeight - margin.bottom + 16}
                 textAnchor="middle"
-                fontSize="11"
+                fontSize={fontSize.axis}
+                fontWeight="500"
                 fill="var(--text-secondary)"
               >
                 {formatValue(tick)}
@@ -372,7 +398,8 @@ export default function BarChart({
                 y={margin.top + valueScale(tick)}
                 textAnchor="end"
                 dominantBaseline="middle"
-                fontSize="11"
+                fontSize={fontSize.axis}
+                fontWeight="500"
                 fill="var(--text-secondary)"
               >
                 {formatValue(tick)}

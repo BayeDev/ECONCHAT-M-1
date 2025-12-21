@@ -69,7 +69,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100vh-130px)]">
+    <div className="min-h-[calc(100vh-130px)]">
       <Sidebar
         currentSessionId={sessionId}
         onNewChat={handleNewChat}
@@ -80,11 +80,13 @@ export default function HomePage() {
 
       <main
         className={cn(
-          "flex-1 max-w-5xl mx-auto transition-all duration-200",
-          sidebarOpen ? "lg:ml-0" : "lg:ml-0"
+          "transition-all duration-200 px-4",
+          sidebarOpen ? "ml-72" : "ml-0"
         )}
       >
-        <ChatInterface key={sessionId} sessionId={sessionId} />
+        <div className="max-w-5xl mx-auto">
+          <ChatInterface key={sessionId} sessionId={sessionId} />
+        </div>
       </main>
     </div>
   );

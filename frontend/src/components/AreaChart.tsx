@@ -59,11 +59,19 @@ export default function AreaChart({
     values: { name: string; value: number; color: string }[];
   } | null>(null);
 
-  // Chart dimensions
-  const width = 720;
-  const margin = { top: 20, right: 120, bottom: 50, left: 60 };
+  // Chart dimensions - use smaller viewBox so text appears larger when scaled
+  const width = 420;
+  const chartHeight = 260;
+  const margin = { top: 20, right: 80, bottom: 50, left: 60 };
   const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
+  const innerHeight = chartHeight - margin.top - margin.bottom;
+
+  // Font sizes - larger to compensate for SVG scaling
+  const fontSize = {
+    axis: 14,
+    axisTitle: 13,
+    legend: 13
+  };
 
   // Process data for stacking
   const { stackedData, xDomain, yDomain, xScale, yScale } = useMemo(() => {
@@ -229,17 +237,14 @@ export default function AreaChart({
       {/* Title */}
       {title && (
         <h3
-          className="chart-title"
-          style={{ fontFamily: "var(--font-display), Georgia, serif", fontSize: '24px' }}
+          className="chart-title text-base font-semibold text-gray-800 dark:text-slate-200"
+          style={{ fontFamily: "var(--font-body, 'Inter'), Inter, sans-serif" }}
         >
           {title}
         </h3>
       )}
       {subtitle && (
-        <p
-          className="chart-subtitle"
-          style={{ fontFamily: "var(--font-body), Lato, sans-serif", fontSize: '14px' }}
-        >
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
           {subtitle}
         </p>
       )}
@@ -247,8 +252,10 @@ export default function AreaChart({
       {/* SVG Chart */}
       <svg
         width="100%"
-        viewBox={`0 0 ${width} ${height}`}
-        className="overflow-visible"
+        viewBox={`0 0 ${width} ${chartHeight}`}
+        className="overflow-visible chart-svg"
+        style={{ maxHeight: height }}
+        data-chart="true"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setTooltip(null)}
       >
@@ -273,33 +280,33 @@ export default function AreaChart({
             x1={margin.left}
             x2={margin.left}
             y1={margin.top}
-            y2={height - margin.bottom}
+            y2={chartHeight - margin.bottom}
             stroke="var(--border-light, #d1d5db)"
             strokeWidth={1}
           />
           {yTicks.map((tick, i) => (
             <text
               key={i}
-              x={margin.left - 10}
+              x={margin.left - 8}
               y={yScale(tick)}
               textAnchor="end"
               dominantBaseline="middle"
-              fontSize="12"
-              fontFamily="var(--font-body), Lato, sans-serif"
-              fill="var(--text-secondary, #6b7280)"
+              fontSize={fontSize.axis}
+              fontWeight="500"
+              fill="var(--text-secondary)"
             >
               {formatYValue(tick)}
             </text>
           ))}
           {yLabel && (
             <text
-              x={-height / 2}
-              y={15}
+              x={-(margin.top + innerHeight / 2)}
+              y={12}
               transform="rotate(-90)"
               textAnchor="middle"
-              fontSize="12"
-              fontFamily="var(--font-body), Lato, sans-serif"
-              fill="var(--text-secondary, #6b7280)"
+              fontSize={fontSize.axisTitle}
+              fontWeight="500"
+              fill="var(--text-secondary)"
             >
               {yLabel}
             </text>
@@ -311,8 +318,8 @@ export default function AreaChart({
           <line
             x1={margin.left}
             x2={width - margin.right}
-            y1={height - margin.bottom}
-            y2={height - margin.bottom}
+            y1={chartHeight - margin.bottom}
+            y2={chartHeight - margin.bottom}
             stroke="var(--border-light, #d1d5db)"
             strokeWidth={1}
           />
@@ -320,11 +327,11 @@ export default function AreaChart({
             <text
               key={i}
               x={xScale(tick)}
-              y={height - margin.bottom + 20}
+              y={chartHeight - margin.bottom + 18}
               textAnchor="middle"
-              fontSize="12"
-              fontFamily="var(--font-body), Lato, sans-serif"
-              fill="var(--text-secondary, #6b7280)"
+              fontSize={fontSize.axis}
+              fontWeight="500"
+              fill="var(--text-secondary)"
             >
               {tick}
             </text>
@@ -332,11 +339,11 @@ export default function AreaChart({
           {xLabel && (
             <text
               x={margin.left + innerWidth / 2}
-              y={height - 5}
+              y={chartHeight - 8}
               textAnchor="middle"
-              fontSize="12"
-              fontFamily="var(--font-body), Lato, sans-serif"
-              fill="var(--text-secondary, #6b7280)"
+              fontSize={fontSize.axisTitle}
+              fontWeight="500"
+              fill="var(--text-secondary)"
             >
               {xLabel}
             </text>
@@ -373,8 +380,8 @@ export default function AreaChart({
             x1={xScale(tooltip.xValue)}
             x2={xScale(tooltip.xValue)}
             y1={margin.top}
-            y2={height - margin.bottom}
-            stroke="var(--text-secondary, #6b7280)"
+            y2={chartHeight - margin.bottom}
+            stroke="var(--text-secondary)"
             strokeWidth={1}
             strokeDasharray="4,4"
           />
@@ -410,7 +417,7 @@ export default function AreaChart({
                     borderRadius: '2px'
                   }}
                 />
-                <span style={{ fontSize: '12px', fontFamily: 'var(--font-body), Lato, sans-serif' }}>
+                <span className="text-sm text-gray-700 dark:text-slate-300">
                   {s.name}
                 </span>
               </div>

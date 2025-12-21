@@ -2,12 +2,14 @@
 /**
  * EconChat M-2 - ChartExport Component
  * Export functionality for charts: CSV, SVG, PNG, PDF
+ * Plus citation generation for academic use
  *
  * Implementation approach:
  * - CSV: Direct data serialization using native JS (no library needed)
  * - SVG: Clone SVG element, inline all computed styles, serialize with XMLSerializer
  * - PNG: Render SVG to canvas using Image, then canvas.toBlob()
  * - PDF: Use jspdf library to create PDF with embedded PNG
+ * - Citations: Generate citations in multiple academic formats
  */
 
 import { useState, useCallback, RefObject } from 'react';
@@ -27,6 +29,10 @@ interface ChartExportData {
   title?: string;
   series: Series[];
   source?: string;
+  // Citation metadata (optional)
+  indicator?: string;
+  indicatorCode?: string;
+  year?: number | string;
 }
 
 interface ChartExportProps {
@@ -34,6 +40,42 @@ interface ChartExportProps {
   chartRef: RefObject<HTMLDivElement | null>;
   filename?: string;
 }
+
+// Citation format types
+type CitationFormat = 'apa' | 'chicago' | 'harvard' | 'mla' | 'bibtex';
+
+// Source to citation mapping
+const SOURCE_CITATION_CONFIG: Record<string, {
+  author: string;
+  database: string;
+  url: string;
+}> = {
+  'World Bank': {
+    author: 'World Bank',
+    database: 'World Development Indicators',
+    url: 'https://data.worldbank.org',
+  },
+  'IMF': {
+    author: 'International Monetary Fund',
+    database: 'World Economic Outlook Database',
+    url: 'https://www.imf.org/en/Publications/WEO',
+  },
+  'FAO': {
+    author: 'Food and Agriculture Organization',
+    database: 'FAOSTAT',
+    url: 'https://www.fao.org/faostat',
+  },
+  'UN Comtrade': {
+    author: 'United Nations',
+    database: 'UN Comtrade Database',
+    url: 'https://comtradeplus.un.org',
+  },
+  'Our World in Data': {
+    author: 'Our World in Data',
+    database: 'Our World in Data',
+    url: 'https://ourworldindata.org',
+  },
+};
 
 // ============================================
 // CSV Export - Pure JavaScript Implementation
@@ -379,12 +421,72 @@ function downloadBlob(blob: Blob, filename: string): void {
 }
 
 // ============================================
+// Citation Generation
+// ============================================
+
+function generateCitation(
+  data: ChartExportData,
+  format: CitationFormat
+): string {
+  const source = data.source || 'Data source';
+  const config = SOURCE_CITATION_CONFIG[source] || {
+    author: source,
+    database: source,
+    url: '',
+  };
+
+  const indicator = data.indicator || data.title || 'Data';
+  const year = data.year || new Date().getFullYear();
+  const accessDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  switch (format) {
+    case 'apa':
+      return `${config.author}. (${year}). ${indicator} [Data set]. ${config.database}. ${config.url}`;
+
+    case 'chicago':
+      return `${config.author}. "${indicator}." ${config.database}, ${year}. ${config.url}.`;
+
+    case 'harvard':
+      return `${config.author} (${year}) ${indicator}, ${config.database}. Available at: ${config.url} (Accessed: ${accessDate}).`;
+
+    case 'mla':
+      return `"${indicator}." ${config.database}, ${config.author}, ${year}, ${config.url}.`;
+
+    case 'bibtex':
+      const key = `${source.toLowerCase().replace(/\s+/g, '_')}_${year}`;
+      return `@misc{${key},
+  author = {${config.author}},
+  title = {${indicator}},
+  year = {${year}},
+  howpublished = {${config.database}},
+  url = {${config.url}},
+  note = {Accessed: ${accessDate}}
+}`;
+
+    default:
+      return `${config.author}. ${indicator}. ${config.database}, ${year}.`;
+  }
+}
+
+function copyToClipboard(text: string): Promise<boolean> {
+  return navigator.clipboard.writeText(text)
+    .then(() => true)
+    .catch(() => false);
+}
+
+// ============================================
 // Main Component
 // ============================================
 
 export default function ChartExport({ data, chartRef, filename = 'chart' }: ChartExportProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
+  const [citationMenu, setCitationMenu] = useState(false);
+  const [copiedCitation, setCopiedCitation] = useState<string | null>(null);
 
   // Debug log
   if (typeof window !== 'undefined') {
@@ -417,10 +519,22 @@ export default function ChartExport({ data, chartRef, filename = 'chart' }: Char
     setIsOpen(false);
   }, [data, chartRef, filename]);
 
+  const handleCopyCitation = useCallback(async (format: CitationFormat) => {
+    const citation = generateCitation(data, format);
+    const success = await copyToClipboard(citation);
+    if (success) {
+      setCopiedCitation(format);
+      setTimeout(() => setCopiedCitation(null), 2000);
+    }
+  }, [data]);
+
   return (
     <div className="relative flex-shrink-0" style={{ minWidth: '80px' }}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          setCitationMenu(false);
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -444,7 +558,11 @@ export default function ChartExport({ data, chartRef, filename = 'chart' }: Char
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1 py-1 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-600 z-50">
+        <div className="absolute right-0 mt-1 py-1 w-40 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-600 z-50">
+          {/* Export Section */}
+          <div className="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+            Download
+          </div>
           <button
             onClick={() => handleExport('csv')}
             disabled={!!exporting}
@@ -473,6 +591,45 @@ export default function ChartExport({ data, chartRef, filename = 'chart' }: Char
           >
             {exporting === 'pdf' ? 'Exporting...' : 'PDF Report'}
           </button>
+
+          {/* Divider */}
+          <div className="my-1 border-t border-gray-200 dark:border-slate-700" />
+
+          {/* Citation Section */}
+          <div className="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+            Cite
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setCitationMenu(!citationMenu)}
+              className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center justify-between"
+            >
+              <span>Copy Citation</span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            {/* Citation Format Submenu */}
+            {citationMenu && (
+              <div className="absolute left-full top-0 ml-1 py-1 w-32 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-600 z-50">
+                {(['apa', 'chicago', 'harvard', 'mla', 'bibtex'] as CitationFormat[]).map((format) => (
+                  <button
+                    key={format}
+                    onClick={() => handleCopyCitation(format)}
+                    className="w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center justify-between"
+                  >
+                    <span className="uppercase">{format}</span>
+                    {copiedCitation === format && (
+                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

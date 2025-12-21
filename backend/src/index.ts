@@ -10,7 +10,7 @@ import { classifyQuery, getTierName } from './llm_router/router.js';
 
 // Database & Auth imports
 import { connectDatabase, checkDatabaseHealth } from './db/index.js';
-import { webhookRoutes, adminRoutes } from './routes/index.js';
+import { webhookRoutes, adminRoutes, dataQualityRoutes, citationsRoutes } from './routes/index.js';
 import { requireAuth, optionalAuth } from './middleware/auth.middleware.js';
 import { checkUserLimits, checkBudgetLimits, checkMaintenanceMode, incrementUserUsage } from './middleware/rateLimit.middleware.js';
 import { usageRepository } from './repositories/usage.repository.js';
@@ -38,6 +38,10 @@ let useRouting = process.env.USE_LLM_ROUTING !== 'false';
 // ============ WEBHOOK & ADMIN ROUTES ============
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/admin', adminRoutes);
+
+// ============ MDB ENHANCEMENT ROUTES (Phase 1) ============
+app.use('/api/data-quality', dataQualityRoutes);
+app.use('/api/citations', citationsRoutes);
 
 // Health check
 app.get('/api/health', async (req, res) => {
@@ -342,6 +346,10 @@ async function startServer() {
 ║    GET  /api/admin/usage/*   - Usage analytics            ║
 ║    GET  /api/admin/settings  - System settings            ║
 ║    POST /api/webhooks/clerk  - Clerk user sync            ║
+║                                                           ║
+║  MDB Enhancement Endpoints:                               ║
+║    GET  /api/data-quality/*  - Data quality metadata      ║
+║    GET  /api/citations/*     - Citation generator         ║
 ║                                                           ║
 ║  Data Sources:                                            ║
 ║    - World Bank (WDI indicators)                          ║

@@ -140,21 +140,22 @@ export default function Sidebar({
         <div
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
           onClick={onToggle}
+          aria-hidden="true"
         />
       )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky top-[65px] left-0 z-40 h-[calc(100vh-65px)]",
+          "fixed top-[65px] left-0 z-30 h-[calc(100vh-65px)]",
           "w-72 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800",
           "transform transition-transform duration-200 ease-in-out",
-          "flex flex-col",
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-0 lg:border-0 lg:overflow-hidden"
+          "flex flex-col overflow-hidden",
+          isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-slate-800">
+        <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-slate-800">
           <button
             onClick={onNewChat}
             className={cn(
@@ -230,35 +231,36 @@ export default function Sidebar({
         </div>
 
         {/* Footer with keyboard shortcuts */}
-        <div className="p-4 border-t border-gray-200 dark:border-slate-800 text-xs text-gray-400 dark:text-slate-500">
+        <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-slate-800 text-xs text-gray-400 dark:text-slate-500 bg-white dark:bg-slate-900">
           <div className="space-y-1">
             <div className="flex justify-between">
               <span>Toggle sidebar</span>
-              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-gray-600 dark:text-slate-300 font-mono">⌘B</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-gray-600 dark:text-slate-300 font-mono text-[10px]">⌘B</kbd>
             </div>
             <div className="flex justify-between">
               <span>Focus input</span>
-              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-gray-600 dark:text-slate-300 font-mono">⌘K</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-gray-600 dark:text-slate-300 font-mono text-[10px]">⌘K</kbd>
             </div>
             <div className="flex justify-between">
               <span>New chat</span>
-              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-gray-600 dark:text-slate-300 font-mono">⌘N</kbd>
+              <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-slate-800 rounded text-gray-600 dark:text-slate-300 font-mono text-[10px]">⌘N</kbd>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Toggle button for collapsed sidebar */}
+      {/* Toggle button for sidebar */}
       <button
         onClick={onToggle}
         className={cn(
-          "fixed top-20 z-30 p-2 rounded-r-lg transition-all duration-200",
+          "fixed top-[75px] z-40 p-2 rounded-r-lg transition-all duration-200",
           "bg-white dark:bg-slate-900 border border-l-0 border-gray-200 dark:border-slate-800",
-          "hover:bg-gray-50 dark:hover:bg-slate-800",
+          "hover:bg-gray-50 dark:hover:bg-slate-800 shadow-md",
           "focus:outline-none focus:ring-2 focus:ring-wb-blue-500",
           isOpen ? "left-72" : "left-0"
         )}
-        title={isOpen ? "Close sidebar" : "Open sidebar"}
+        title={isOpen ? "Close sidebar (⌘B)" : "Open sidebar (⌘B)"}
+        aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
       >
         <svg
           className={cn(
