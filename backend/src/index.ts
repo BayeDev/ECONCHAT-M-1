@@ -317,7 +317,7 @@ async function startServer() {
   // Connect to database
   const dbConnected = await connectDatabase();
 
-  app.listen(PORT, () => {
+  app.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                     EconChat Backend                      ║
