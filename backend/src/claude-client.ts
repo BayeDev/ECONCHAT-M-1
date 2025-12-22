@@ -56,7 +56,7 @@ interface Message {
 
 // Structure for chart-ready time series data
 export interface ChartDataPoint {
-  x: number;  // year
+  x: number | string;  // year or category label
   y: number | null;
 }
 
@@ -490,8 +490,8 @@ function parseOWIDData(data: unknown[], userMessage: string): ChartData | undefi
   // Convert to series array for line chart
   const series: ChartSeries[] = [];
   for (const [name, points] of seriesMap) {
-    // Sort by year
-    points.sort((a, b) => a.x - b.x);
+    // Sort by year (cast to number for arithmetic)
+    points.sort((a, b) => (a.x as number) - (b.x as number));
     series.push({ name, data: points });
   }
 
@@ -545,7 +545,7 @@ function parseWorldBankData(data: unknown[], userMessage: string): ChartData | u
 
   const series: ChartSeries[] = [];
   for (const [name, points] of seriesMap) {
-    points.sort((a, b) => a.x - b.x);
+    points.sort((a, b) => (a.x as number) - (b.x as number));
     series.push({ name, data: points });
   }
 
@@ -578,7 +578,7 @@ function parseIMFData(data: unknown, userMessage: string): ChartData | undefined
     }
 
     if (points.length > 0) {
-      points.sort((a, b) => a.x - b.x);
+      points.sort((a, b) => (a.x as number) - (b.x as number));
       return {
         type: 'line',
         series: [{ name: country, data: points }],

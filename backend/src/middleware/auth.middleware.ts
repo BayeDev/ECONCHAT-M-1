@@ -86,7 +86,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         // Use role from Clerk metadata if present, otherwise default to USER
         const roleToUse = clerkRole || 'USER';
 
-        user = await userRepository.create({
+        const newUser = await userRepository.create({
           clerkId: payload.sub,
           email,
           name,
@@ -94,6 +94,12 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
           role: roleToUse as 'ADMIN' | 'USER' | 'BETA_TESTER',
           status: 'ACTIVE',
         });
+
+        // Fetch the user with limits
+        user = await userRepository.findByClerkId(payload.sub);
+        if (!user) {
+          user = { ...newUser, limits: null };
+        }
 
         console.log(`[Auth] User created: ${email}, role: ${roleToUse}`);
       } else {
@@ -105,21 +111,21 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
         }
       }
 
-      if (user.status === 'SUSPENDED') {
+      if (user && user.status === 'SUSPENDED') {
         return res.status(403).json({
           error: 'Forbidden',
           message: 'Your account has been suspended. Please contact support.',
         });
       }
 
-      if (user.status === 'PENDING') {
+      if (user && user.status === 'PENDING') {
         return res.status(403).json({
           error: 'Forbidden',
           message: 'Your account is pending approval.',
         });
       }
 
-      req.user = user;
+      req.user = user || undefined;
       next();
     } catch (verifyError) {
       console.error('[Auth] Token verification failed:', verifyError);

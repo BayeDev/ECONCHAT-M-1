@@ -171,11 +171,11 @@ export function resetUsageStats() {
 /**
  * Convert our tools to Gemini function declaration format
  */
-function convertToolsToGeminiFormat() {
+function convertToolsToGeminiFormat(): any[] {
   return allTools.map(tool => ({
     name: tool.name,
     description: tool.description,
-    parameters: tool.input_schema
+    parameters: tool.input_schema as any
   }));
 }
 
