@@ -166,7 +166,8 @@ export default function ChatInterface({ sessionId }: ChatInterfaceProps) {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/chat', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(`${apiUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, sessionId })
@@ -214,7 +215,8 @@ export default function ChatInterface({ sessionId }: ChatInterfaceProps) {
     setMessages([]);
     localStorage.removeItem(`${STORAGE_KEY}_${sessionId}`);
     // Also reset backend session
-    fetch('/api/reset', {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    fetch(`${apiUrl}/api/reset`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId })

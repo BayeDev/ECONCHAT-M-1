@@ -35,7 +35,8 @@ export default function HomePage() {
 
     // Reset backend session
     try {
-      await fetch("/api/reset", {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      await fetch(`${apiUrl}/api/reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId }),
