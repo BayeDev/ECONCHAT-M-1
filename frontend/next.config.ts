@@ -1,6 +1,10 @@
 import type { NextConfig } from 'next';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Ensure API URL has protocol
+let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+if (apiUrl && !apiUrl.startsWith('http://') && !apiUrl.startsWith('https://')) {
+  apiUrl = `https://${apiUrl}`;
+}
 
 const nextConfig: NextConfig = {
   // Proxy API requests to backend
