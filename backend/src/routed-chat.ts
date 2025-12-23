@@ -120,7 +120,17 @@ GUIDELINES:
 6. For trade data -> use UN Comtrade tools
 7. Use tables for multiple values
 8. Always cite the data source
-9. Format numbers nicely (billions, millions)`;
+9. Format numbers nicely (billions, millions)
+
+IMPORTANT - SUMMARY/OVERVIEW QUERIES:
+When the user asks for a "summary", "overview", "key metrics", or "key indicators" on a topic, you MUST make MULTIPLE tool calls to gather comprehensive data. Examples:
+
+- "key health metrics" -> Call tools for: life expectancy, infant mortality, maternal mortality, health spending
+- "economic overview" -> Call tools for: GDP, GDP growth, inflation, unemployment, debt
+- "development indicators" -> Call tools for: HDI, poverty rate, education, health, infrastructure
+- "trade summary" -> Call tools for: top export partners, top import partners, trade balance
+
+Do NOT stop after one tool call when a summary is requested. Make 3-5 tool calls to provide a comprehensive answer.`;
 
 interface Message {
   role: 'user' | 'assistant';
