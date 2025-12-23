@@ -501,7 +501,7 @@ export async function executeTool(toolName: string, params: Record<string, unkno
 
     if (toolName === 'imf_get_weo_data') {
       const indicator = params.indicator as string;
-      const countries = (params.countries as string[]).join('+');
+      const requestedCountries = params.countries as string[];
       const startYear = (params.start_year as number) || 2020;
       const endYear = (params.end_year as number) || 2028;
 
@@ -510,30 +510,41 @@ export async function executeTool(toolName: string, params: Record<string, unkno
         (_, i) => startYear + i
       ).join(',');
 
-      const response = await axios.get(
-        `https://www.imf.org/external/datamapper/api/v1/${indicator}/${countries}?periods=${periods}`,
-        { timeout: 20000 }
-      );
-
+      // IMF API quirk: using '+' separator returns 403, using comma returns ALL countries
+      // Solution: Make individual requests for each country (more reliable)
       const results: Array<{ country: string; year: number; value: number; indicator: string }> = [];
-      const data = response.data?.values?.[indicator];
 
-      if (data) {
-        for (const [country, values] of Object.entries(data)) {
-          for (const [year, value] of Object.entries(values as Record<string, number>)) {
-            if (value !== null && value !== undefined) {
-              results.push({
-                country,
-                year: parseInt(year),
-                value: value as number,
-                indicator
-              });
+      for (const countryCode of requestedCountries) {
+        try {
+          const response = await axios.get(
+            `https://www.imf.org/external/datamapper/api/v1/${indicator}/${countryCode}?periods=${periods}`,
+            { timeout: 15000 }
+          );
+
+          const data = response.data?.values?.[indicator];
+          if (data && data[countryCode]) {
+            for (const [year, value] of Object.entries(data[countryCode] as Record<string, number>)) {
+              if (value !== null && value !== undefined) {
+                results.push({
+                  country: countryCode,
+                  year: parseInt(year),
+                  value: value as number,
+                  indicator
+                });
+              }
             }
           }
+        } catch (err) {
+          console.error(`IMF API error for ${countryCode}:`, err);
+          // Continue with other countries even if one fails
         }
       }
 
-      return results.sort((a, b) => a.year - b.year);
+      if (results.length === 0) {
+        return { error: 'Could not retrieve data from IMF. The API may be temporarily unavailable.' };
+      }
+
+      return results.sort((a, b) => a.country.localeCompare(b.country) || a.year - b.year);
     }
 
     if (toolName === 'imf_list_countries') {
