@@ -487,7 +487,7 @@ function parseOWIDData(data: unknown[], userMessage: string): ChartData | undefi
     };
   }
 
-  // Convert to series array for line chart
+  // Convert to series array
   const series: ChartSeries[] = [];
   for (const [name, points] of seriesMap) {
     // Sort by year (cast to number for arithmetic)
@@ -498,14 +498,21 @@ function parseOWIDData(data: unknown[], userMessage: string): ChartData | undefi
   console.log(`[Chart] Final series count: ${series.length}, entities: ${series.map(s => s.name).join(', ')}`);
 
   // Use the indicator name (yLabel) as the chart title for clarity
-  // This is better than using the truncated user message
   const title = yLabel;
 
+  // Determine chart type:
+  // - Use BAR chart when comparing multiple countries for a single year (or very few years)
+  // - Use LINE chart for time series data
+  const useBarChart = seriesMap.size > 1 && allYears.size <= 2;
+  const chartType = useBarChart ? 'bar' : 'line';
+
+  console.log(`[Chart] Type: ${chartType} (${seriesMap.size} entities, ${allYears.size} years)`);
+
   return {
-    type: 'line',
+    type: chartType,
     series,
     title,
-    xLabel: 'Year',
+    xLabel: useBarChart ? 'Country' : 'Year',
     yLabel
   };
 }

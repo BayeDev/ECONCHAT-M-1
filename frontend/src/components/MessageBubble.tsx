@@ -270,13 +270,23 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 )}
                 {chart.type === 'bar' && (
                   <BarChart
-                    data={chart.series[0]?.data.map((d) => ({
-                      label: String(d.x),
-                      value: d.y
-                    })) || []}
+                    data={
+                      // For multi-country comparison: use series names (countries) as labels
+                      // Each series has one data point per year
+                      chart.series.length > 1
+                        ? chart.series.map((s, i) => ({
+                            label: s.name,
+                            value: s.data[0]?.y ?? null,
+                            color: undefined // Let BarChart assign colors
+                          }))
+                        : chart.series[0]?.data.map((d) => ({
+                            label: String(d.x),
+                            value: d.y
+                          })) || []
+                    }
                     title={chart.title}
                     sourceAttribution={index === message.charts!.length - 1 ? message.sources?.join(', ') : undefined}
-                    orientation="vertical"
+                    orientation="horizontal"
                     height={350}
                   />
                 )}
@@ -325,13 +335,22 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             )}
             {message.chartData.type === 'bar' && (
               <BarChart
-                data={message.chartData.series[0]?.data.map((d) => ({
-                  label: String(d.x),
-                  value: d.y
-                })) || []}
+                data={
+                  // For multi-country comparison: use series names (countries) as labels
+                  message.chartData.series.length > 1
+                    ? message.chartData.series.map((s) => ({
+                        label: s.name,
+                        value: s.data[0]?.y ?? null,
+                        color: undefined
+                      }))
+                    : message.chartData.series[0]?.data.map((d) => ({
+                        label: String(d.x),
+                        value: d.y
+                      })) || []
+                }
                 title={message.chartData.title}
                 sourceAttribution={message.sources?.join(', ')}
-                orientation="vertical"
+                orientation="horizontal"
                 height={350}
               />
             )}
