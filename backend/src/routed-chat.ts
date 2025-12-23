@@ -123,14 +123,26 @@ GUIDELINES:
 9. Format numbers nicely (billions, millions)
 
 IMPORTANT - SUMMARY/OVERVIEW QUERIES:
-When the user asks for a "summary", "overview", "key metrics", or "key indicators" on a topic, you MUST make MULTIPLE tool calls to gather comprehensive data. Examples:
+When the user asks for a "summary", "overview", "key metrics", or "key indicators" on a topic, you MUST make MULTIPLE tool calls with DIFFERENT indicators. Do NOT repeat the same indicator.
 
-- "key health metrics" -> Call tools for: life expectancy, infant mortality, maternal mortality, health spending
-- "economic overview" -> Call tools for: GDP, GDP growth, inflation, unemployment, debt
-- "development indicators" -> Call tools for: HDI, poverty rate, education, health, infrastructure
-- "trade summary" -> Call tools for: top export partners, top import partners, trade balance
+HEALTH METRICS - Use these OWID chart_slugs (call owid_get_chart_data for each):
+- life-expectancy (life expectancy at birth)
+- infant-mortality (deaths per 1,000 live births)
+- maternal-mortality (deaths per 100,000 births)
+- share-of-children-who-are-stunted (child malnutrition)
+- share-with-access-to-electricity (basic infrastructure)
 
-Do NOT stop after one tool call when a summary is requested. Make 3-5 tool calls to provide a comprehensive answer.`;
+ECONOMIC OVERVIEW - Use these:
+- IMF: NGDP_RPCH (GDP growth), PCPIPCH (inflation), GGXWDG_NGDP (debt/GDP)
+- World Bank: NY.GDP.MKTP.CD (GDP), SL.UEM.TOTL.ZS (unemployment)
+
+DEVELOPMENT OVERVIEW - Use these OWID chart_slugs:
+- human-development-index
+- share-of-population-in-extreme-poverty
+- literacy-rate-adult-total
+- share-of-individuals-using-the-internet
+
+Make 4-5 tool calls with DIFFERENT indicators. Never call the same indicator twice.`;
 
 interface Message {
   role: 'user' | 'assistant';
@@ -655,48 +667,102 @@ function extractAllChartData(
   userMessage: string
 ): ChartData[] {
   const charts: ChartData[] = [];
+  const seenTitles = new Set<string>(); // Track titles to avoid duplicates
 
   for (const { tool, result } of collectedData) {
     if (!result || typeof result !== 'object') continue;
 
+    let chartData: ChartData | null = null;
+
     // OWID data
     if ((tool === 'owid_get_chart_data' || tool === 'owid_get_data') && Array.isArray(result)) {
-      const chartData = parseOWIDDataSimple(result, userMessage);
-      if (chartData) charts.push(chartData);
+      chartData = parseOWIDDataSimple(result, userMessage);
     }
 
     // World Bank data
     if ((tool === 'wb_get_indicator' || tool === 'wb_get_indicator_data') && Array.isArray(result)) {
-      const chartData = parseWorldBankDataSimple(result);
-      if (chartData) charts.push(chartData);
+      chartData = parseWorldBankDataSimple(result);
     }
 
     // UN Comtrade data - top partners
     if (tool === 'comtrade_get_top_partners' && Array.isArray(result)) {
-      const chartData = parseComtradeTopPartners(result);
-      if (chartData) charts.push(chartData);
+      chartData = parseComtradeTopPartners(result);
     }
 
     // UN Comtrade data - trade flow
     if (tool === 'comtrade_get_trade_data' && Array.isArray(result)) {
-      const chartData = parseComtradeTradeData(result);
-      if (chartData) charts.push(chartData);
+      chartData = parseComtradeTradeData(result);
     }
 
     // IMF data
     if ((tool === 'imf_get_indicator' || tool === 'imf_get_weo_data') && Array.isArray(result)) {
-      const chartData = parseIMFData(result);
-      if (chartData) charts.push(chartData);
+      chartData = parseIMFData(result);
+    }
+
+    // Add chart only if not a duplicate (by title)
+    if (chartData && chartData.title && !seenTitles.has(chartData.title)) {
+      seenTitles.add(chartData.title);
+      charts.push(chartData);
+    } else if (chartData && !chartData.title) {
+      // No title, just add it
+      charts.push(chartData);
     }
 
     // FAO data
     if ((tool === 'fao_get_data' || tool === 'fao_get_production') && Array.isArray(result)) {
-      const chartData = parseFAOData(result);
-      if (chartData) charts.push(chartData);
+      const faoChartData = parseFAOData(result);
+      if (faoChartData && faoChartData.title && !seenTitles.has(faoChartData.title)) {
+        seenTitles.add(faoChartData.title);
+        charts.push(faoChartData);
+      } else if (faoChartData && !faoChartData.title) {
+        charts.push(faoChartData);
+      }
     }
   }
 
   return charts;
+}
+
+// Common country name mappings for entity filtering
+const COUNTRY_ALIASES: Record<string, string[]> = {
+  'djibouti': ['djibouti'],
+  'united states': ['united states', 'usa', 'us', 'america'],
+  'united kingdom': ['united kingdom', 'uk', 'britain', 'england'],
+  'south korea': ['south korea', 'korea, republic of', 'republic of korea'],
+  'north korea': ['north korea', 'korea, democratic', 'dprk'],
+  'democratic republic of congo': ['democratic republic of congo', 'congo, dem. rep.', 'dr congo', 'drc', 'congo-kinshasa'],
+  'republic of congo': ['republic of congo', 'congo, rep.', 'congo-brazzaville'],
+  'cote d\'ivoire': ['cote d\'ivoire', 'ivory coast'],
+};
+
+// Extract country/region names mentioned in the user message
+function extractEntitiesFromMessage(userMessage: string): string[] {
+  const userLower = userMessage.toLowerCase();
+  const entities: string[] = [];
+
+  // Common country names to look for
+  const countryPatterns = [
+    'djibouti', 'nigeria', 'niger', 'uganda', 'kenya', 'ethiopia', 'tanzania', 'ghana', 'senegal',
+    'south africa', 'egypt', 'morocco', 'algeria', 'tunisia', 'libya', 'sudan', 'somalia', 'rwanda',
+    'cameroon', 'angola', 'mozambique', 'madagascar', 'zambia', 'zimbabwe', 'botswana', 'namibia',
+    'malawi', 'mali', 'burkina faso', 'benin', 'togo', 'guinea', 'sierra leone', 'liberia',
+    'mauritania', 'gambia', 'cape verde', 'mauritius', 'seychelles', 'comoros', 'sao tome',
+    'eritrea', 'burundi', 'central african', 'chad', 'gabon', 'equatorial guinea', 'congo',
+    'lesotho', 'eswatini', 'swaziland',
+    // Non-African
+    'china', 'india', 'japan', 'germany', 'france', 'brazil', 'mexico', 'russia', 'canada',
+    'australia', 'indonesia', 'pakistan', 'bangladesh', 'vietnam', 'thailand', 'philippines',
+    'malaysia', 'singapore', 'united states', 'usa', 'uk', 'united kingdom'
+  ];
+
+  for (const country of countryPatterns) {
+    if (userLower.includes(country)) {
+      // Capitalize properly for matching
+      entities.push(country.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+    }
+  }
+
+  return entities;
 }
 
 // Simplified chart parsers
@@ -705,6 +771,17 @@ function parseOWIDDataSimple(data: unknown[], userMessage: string): ChartData | 
 
   const seriesMap = new Map<string, Array<{ x: number; y: number | null }>>();
   let yLabel = 'Value';
+
+  // Extract country names the user is asking about
+  const requestedEntities = extractEntitiesFromMessage(userMessage);
+  const userLower = userMessage.toLowerCase();
+
+  // Determine if this is a world/global query
+  const isGlobalQuery = userLower.includes('world') ||
+    userLower.includes('global') ||
+    userLower.includes('all countries') ||
+    userLower.includes('compare countries') ||
+    userLower.includes('by country');
 
   for (const item of data) {
     if (!item || typeof item !== 'object') continue;
@@ -724,8 +801,16 @@ function parseOWIDDataSimple(data: unknown[], userMessage: string): ChartData | 
     }
 
     if (typeof entity === 'string' && typeof year === 'number') {
-      if (!seriesMap.has(entity)) seriesMap.set(entity, []);
-      seriesMap.get(entity)!.push({ x: year, y: value });
+      // Filter: only include entities that match user's request (or all if global query)
+      const entityLower = entity.toLowerCase();
+      const shouldInclude = isGlobalQuery ||
+        requestedEntities.length === 0 ||
+        requestedEntities.some(req => entityLower.includes(req.toLowerCase()) || req.toLowerCase().includes(entityLower));
+
+      if (shouldInclude) {
+        if (!seriesMap.has(entity)) seriesMap.set(entity, []);
+        seriesMap.get(entity)!.push({ x: year, y: value });
+      }
     }
   }
 
@@ -737,9 +822,10 @@ function parseOWIDDataSimple(data: unknown[], userMessage: string): ChartData | 
     for (const p of points) allYears.add(p.x);
   }
 
-  const useMap = userMessage.toLowerCase().includes('map') ||
-    userMessage.toLowerCase().includes('world') ||
-    (seriesMap.size > 15 && allYears.size === 1);
+  // Only use map when user explicitly asks for it
+  // Don't auto-trigger map just because OWID returned many countries
+  const useMap = (userLower.includes('map') || userLower.includes('global map')) &&
+    (userLower.includes('world') || userLower.includes('global') || userLower.includes('all countries'));
 
   if (useMap) {
     const targetYear = Math.max(...allYears);
