@@ -122,27 +122,35 @@ GUIDELINES:
 8. Always cite the data source
 9. Format numbers nicely (billions, millions)
 
-IMPORTANT - SUMMARY/OVERVIEW QUERIES:
-When the user asks for a "summary", "overview", "key metrics", or "key indicators" on a topic, you MUST make MULTIPLE tool calls with DIFFERENT indicators. Do NOT repeat the same indicator.
+IMPORTANT - SUMMARY/OVERVIEW QUERIES (SEARCH ONCE, THEN FETCH):
+When the user asks for a "summary", "overview", "key metrics", or "key indicators":
 
-HEALTH METRICS - Use these OWID chart_slugs (call owid_get_chart_data for each):
-- life-expectancy (life expectancy at birth)
-- infant-mortality (deaths per 1,000 live births)
-- maternal-mortality (deaths per 100,000 births)
-- share-of-children-who-are-stunted (child malnutrition)
-- share-with-access-to-electricity (basic infrastructure)
+STEP 1 - ONE SEARCH ONLY: Make exactly 1 search call to discover indicators
+- For health: owid_search_charts with query="health"
+- For economy: wb_search_indicators with query="GDP"
+- For trade: skip search, use comtrade_get_top_partners directly
 
-ECONOMIC OVERVIEW - Use these:
-- IMF: NGDP_RPCH (GDP growth), PCPIPCH (inflation), GGXWDG_NGDP (debt/GDP)
-- World Bank: NY.GDP.MKTP.CD (GDP), SL.UEM.TOTL.ZS (unemployment)
+STEP 2 - FETCH 4-5 DIVERSE INDICATORS: After the ONE search, immediately fetch data
+- Pick 4-5 DIFFERENT indicator slugs from the search results
+- Call owid_get_chart_data or wb_get_indicator_data for EACH indicator
+- Always include countries parameter with the requested country
 
-DEVELOPMENT OVERVIEW - Use these OWID chart_slugs:
-- human-development-index
-- share-of-population-in-extreme-poverty
-- literacy-rate-adult-total
-- share-of-individuals-using-the-internet
+CRITICAL: Do NOT make more than 1 search call. After searching, you MUST fetch data.
 
-Make 4-5 tool calls with DIFFERENT indicators. Never call the same indicator twice.`;
+HEALTH METRICS WORKFLOW:
+1. owid_search_charts(query="health") -> get list of available charts
+2. owid_get_chart_data(chart_slug="life-expectancy", countries=["Djibouti"])
+3. owid_get_chart_data(chart_slug="infant-mortality", countries=["Djibouti"])
+4. owid_get_chart_data(chart_slug="maternal-mortality", countries=["Djibouti"])
+5. wb_get_indicator_data(indicator="SH.XPD.CHEX.PC.CD", countries=["DJI"]) for health expenditure
+
+ECONOMIC OVERVIEW WORKFLOW:
+1. wb_search_indicators(query="GDP") -> get indicator codes
+2. imf_get_weo_data(indicator="NGDP_RPCH", countries=["DJI"])
+3. imf_get_weo_data(indicator="PCPIPCH", countries=["DJI"])
+4. wb_get_indicator_data(indicator="NY.GDP.MKTP.CD", countries=["DJI"])
+
+The pattern is: 1 search + 4-5 data fetches = complete answer.`;
 
 interface Message {
   role: 'user' | 'assistant';
