@@ -815,6 +815,7 @@ function parseWorldBankDataSimple(data: unknown[]): ChartData | null {
     return null;
   }
 
+  const chartType = determineChartType(seriesMap);
   const series = Array.from(seriesMap.entries()).map(([name, points]) => ({
     name,
     data: points.sort((a, b) => a.x - b.x)
@@ -824,10 +825,10 @@ function parseWorldBankDataSimple(data: unknown[]): ChartData | null {
   const cleanTitle = indicatorName === 'Value' ? 'GDP' : indicatorName;
 
   return {
-    type: 'line',
+    type: chartType,
     series,
     title: cleanTitle,
-    xLabel: 'Year',
+    xLabel: chartType === 'bar' ? 'Country' : 'Year',
     yLabel: cleanTitle
   };
 }
@@ -909,6 +910,19 @@ function parseComtradeTradeData(data: unknown[]): ChartData | null {
   };
 }
 
+// Helper to determine chart type based on data shape
+function determineChartType(seriesMap: Map<string, Array<{ x: number; y: number | null }>>): 'line' | 'bar' {
+  // Count unique years across all series
+  const allYears = new Set<number>();
+  for (const points of seriesMap.values()) {
+    for (const p of points) allYears.add(p.x);
+  }
+
+  // Use BAR chart when comparing multiple countries for 1-2 years
+  // Use LINE chart for time series data
+  return (seriesMap.size > 1 && allYears.size <= 2) ? 'bar' : 'line';
+}
+
 // Parse IMF WEO data
 function parseIMFData(data: unknown[]): ChartData | null {
   if (!data || data.length === 0) return null;
@@ -942,16 +956,17 @@ function parseIMFData(data: unknown[]): ChartData | null {
 
   if (seriesMap.size === 0) return null;
 
+  const chartType = determineChartType(seriesMap);
   const series = Array.from(seriesMap.entries()).map(([name, points]) => ({
     name,
     data: points.sort((a, b) => a.x - b.x)
   }));
 
   return {
-    type: 'line',
+    type: chartType,
     series,
     title: indicatorName,
-    xLabel: 'Year',
+    xLabel: chartType === 'bar' ? 'Country' : 'Year',
     yLabel: indicatorName
   };
 }
