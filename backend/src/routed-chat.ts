@@ -144,13 +144,19 @@ HEALTH METRICS WORKFLOW:
 4. owid_get_chart_data(chart_slug="maternal-mortality", countries=["Djibouti"])
 5. wb_get_indicator_data(indicator="SH.XPD.CHEX.PC.CD", countries=["DJI"]) for health expenditure
 
-ECONOMIC OVERVIEW WORKFLOW:
+ECONOMIC/FISCAL OVERVIEW WORKFLOW:
 1. wb_search_indicators(query="GDP") -> get indicator codes
-2. imf_get_weo_data(indicator="NGDP_RPCH", countries=["DJI"])
-3. imf_get_weo_data(indicator="PCPIPCH", countries=["DJI"])
-4. wb_get_indicator_data(indicator="NY.GDP.MKTP.CD", countries=["DJI"])
+2. imf_get_weo_data(indicator="NGDP_RPCH", countries=["ETH"], start_year=2018, end_year=2028)
+3. imf_get_weo_data(indicator="PCPIPCH", countries=["ETH"], start_year=2018, end_year=2028)
+4. imf_get_weo_data(indicator="GGXWDG_NGDP", countries=["ETH"], start_year=2018, end_year=2028)
+5. wb_get_indicator_data(indicator="NY.GDP.MKTP.CD", countries=["ETH"])
 
-The pattern is: 1 search + 4-5 data fetches = complete answer.`;
+CRITICAL FOR IMF DATA:
+- ALWAYS use start_year=2018 and end_year=2028 to get a proper time series for charts
+- NEVER use just a single year (e.g., start_year=2023, end_year=2023) as that produces only 1 data point
+- IMF WEO has forecasts through 2028, so include them for context
+
+The pattern is: 1 search + 4-5 data fetches with MULTI-YEAR ranges = complete answer.`;
 
 interface Message {
   role: 'user' | 'assistant';
@@ -1027,30 +1033,93 @@ function determineChartType(seriesMap: Map<string, Array<{ x: number; y: number 
   return (seriesMap.size > 1 && allYears.size <= 2) ? 'bar' : 'line';
 }
 
+// IMF indicator code to human-readable name mapping
+const IMF_INDICATOR_NAMES: Record<string, string> = {
+  'NGDP_RPCH': 'Real GDP Growth (%)',
+  'NGDP': 'Nominal GDP (billions)',
+  'NGDPD': 'GDP (current prices, USD billions)',
+  'NGDP_R': 'Real GDP',
+  'NGDPDPC': 'GDP per capita (USD)',
+  'PCPIPCH': 'Inflation Rate (%)',
+  'PCPI': 'Consumer Price Index',
+  'PCPIEPCH': 'End-of-period Inflation (%)',
+  'GGXWDG_NGDP': 'Government Debt (% of GDP)',
+  'GGXCNL_NGDP': 'Fiscal Balance (% of GDP)',
+  'GGXONLB_NGDP': 'Primary Balance (% of GDP)',
+  'GGSB_NPGDP': 'Structural Balance (% of GDP)',
+  'BCA_NGDPD': 'Current Account Balance (% of GDP)',
+  'BCA': 'Current Account Balance (USD billions)',
+  'LUR': 'Unemployment Rate (%)',
+  'LP': 'Population (millions)',
+  'TM_RPCH': 'Import Volume Growth (%)',
+  'TX_RPCH': 'Export Volume Growth (%)',
+  'PPPGDP': 'GDP (PPP, international dollars)',
+  'PPPPC': 'GDP per capita (PPP)',
+  'GGR_NGDP': 'Government Revenue (% of GDP)',
+  'GGX_NGDP': 'Government Expenditure (% of GDP)'
+};
+
+// Country ISO3 code to full name mapping
+const COUNTRY_NAMES: Record<string, string> = {
+  'ETH': 'Ethiopia', 'NGA': 'Nigeria', 'NER': 'Niger', 'KEN': 'Kenya',
+  'GHA': 'Ghana', 'TZA': 'Tanzania', 'UGA': 'Uganda', 'ZAF': 'South Africa',
+  'EGY': 'Egypt', 'MAR': 'Morocco', 'DZA': 'Algeria', 'TUN': 'Tunisia',
+  'RWA': 'Rwanda', 'SEN': 'Senegal', 'CMR': 'Cameroon', 'AGO': 'Angola',
+  'MOZ': 'Mozambique', 'MDG': 'Madagascar', 'ZMB': 'Zambia', 'ZWE': 'Zimbabwe',
+  'BWA': 'Botswana', 'NAM': 'Namibia', 'MWI': 'Malawi', 'MLI': 'Mali',
+  'BFA': 'Burkina Faso', 'BEN': 'Benin', 'TGO': 'Togo', 'GIN': 'Guinea',
+  'SLE': 'Sierra Leone', 'LBR': 'Liberia', 'MRT': 'Mauritania', 'GMB': 'Gambia',
+  'CPV': 'Cape Verde', 'MUS': 'Mauritius', 'SYC': 'Seychelles', 'COM': 'Comoros',
+  'ERI': 'Eritrea', 'BDI': 'Burundi', 'CAF': 'Central African Republic',
+  'TCD': 'Chad', 'GAB': 'Gabon', 'GNQ': 'Equatorial Guinea', 'COG': 'Congo',
+  'COD': 'DR Congo', 'LSO': 'Lesotho', 'SWZ': 'Eswatini', 'DJI': 'Djibouti',
+  'SDN': 'Sudan', 'SSD': 'South Sudan', 'SOM': 'Somalia', 'LBY': 'Libya',
+  'CHN': 'China', 'IND': 'India', 'JPN': 'Japan', 'DEU': 'Germany',
+  'FRA': 'France', 'BRA': 'Brazil', 'MEX': 'Mexico', 'RUS': 'Russia',
+  'CAN': 'Canada', 'AUS': 'Australia', 'IDN': 'Indonesia', 'PAK': 'Pakistan',
+  'BGD': 'Bangladesh', 'VNM': 'Vietnam', 'THA': 'Thailand', 'PHL': 'Philippines',
+  'MYS': 'Malaysia', 'SGP': 'Singapore', 'USA': 'United States', 'GBR': 'United Kingdom',
+  'ARG': 'Argentina', 'CHL': 'Chile', 'COL': 'Colombia', 'PER': 'Peru',
+  'SAU': 'Saudi Arabia', 'ARE': 'UAE', 'TUR': 'Turkey', 'POL': 'Poland',
+  'ITA': 'Italy', 'ESP': 'Spain', 'NLD': 'Netherlands', 'BEL': 'Belgium'
+};
+
+// Get human-readable IMF indicator name
+function getIMFIndicatorName(code: string): string {
+  return IMF_INDICATOR_NAMES[code] || code;
+}
+
+// Get full country name from ISO3 code
+function getCountryName(code: string): string {
+  return COUNTRY_NAMES[code] || code;
+}
+
 // Parse IMF WEO data
 function parseIMFData(data: unknown[]): ChartData | null {
   if (!data || data.length === 0) return null;
 
   const seriesMap = new Map<string, Array<{ x: number; y: number | null }>>();
-  let indicatorName = 'Value';
+  let indicatorCode = 'Value';
 
   for (const item of data) {
     if (!item || typeof item !== 'object') continue;
     const record = item as Record<string, unknown>;
 
-    const country = record.country || record['@UNIT'] || record.ISO;
+    const countryCode = record.country || record['@UNIT'] || record.ISO;
     const year = record.year || record['@TIME_PERIOD'];
     const value = record.value || record['@OBS_VALUE'];
 
-    if (typeof record.indicator === 'string' && indicatorName === 'Value') {
-      indicatorName = record.indicator;
+    if (typeof record.indicator === 'string' && indicatorCode === 'Value') {
+      indicatorCode = record.indicator;
     }
 
-    if (typeof country === 'string' && year) {
+    if (typeof countryCode === 'string' && year) {
       const yearNum = typeof year === 'number' ? year : parseInt(String(year));
       if (!isNaN(yearNum)) {
-        if (!seriesMap.has(country)) seriesMap.set(country, []);
-        seriesMap.get(country)!.push({
+        // Use full country name instead of ISO code
+        const countryName = getCountryName(countryCode);
+        if (!seriesMap.has(countryName)) seriesMap.set(countryName, []);
+        seriesMap.get(countryName)!.push({
           x: yearNum,
           y: typeof value === 'number' ? value : null
         });
@@ -1060,11 +1129,25 @@ function parseIMFData(data: unknown[]): ChartData | null {
 
   if (seriesMap.size === 0) return null;
 
+  // Count total data points
+  let totalPoints = 0;
+  for (const points of seriesMap.values()) {
+    totalPoints += points.length;
+  }
+
+  // Don't create a chart for very few data points - better as text
+  if (totalPoints < 3) {
+    return null;
+  }
+
   const chartType = determineChartType(seriesMap);
   const series = Array.from(seriesMap.entries()).map(([name, points]) => ({
     name,
     data: points.sort((a, b) => a.x - b.x)
   }));
+
+  // Use human-readable indicator name
+  const indicatorName = getIMFIndicatorName(indicatorCode);
 
   return {
     type: chartType,
