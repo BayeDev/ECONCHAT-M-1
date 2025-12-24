@@ -90,32 +90,45 @@ export default function LineChart({
 
   // Calculate scales
   const { xScale, yScale, xDomain, yDomain } = useMemo(() => {
+    // Debug: log what data we're receiving
+    console.log('[LineChart] series received:', series.map(s => ({
+      name: s.name,
+      dataPoints: s.data.length,
+      xRange: s.data.length > 0 ? `${s.data[0]?.x} - ${s.data[s.data.length-1]?.x}` : 'empty',
+      yRange: s.data.length > 0 ? `${s.data[0]?.y} - ${s.data[s.data.length-1]?.y}` : 'empty'
+    })));
+
     // Get all x values
     const allX = series.flatMap(s => s.data.map(d => d.x));
     const numericX = allX.filter(x => typeof x === 'number') as number[];
 
     let xMin: number, xMax: number;
-    if (numericX.length === allX.length) {
+    if (numericX.length > 0 && numericX.length === allX.length) {
       xMin = Math.min(...numericX);
       xMax = Math.max(...numericX);
     } else {
       xMin = 0;
-      xMax = allX.length - 1;
+      xMax = Math.max(allX.length - 1, 1);
     }
 
-    // Get all y values
-    const allY = series.flatMap(s => s.data.map(d => d.y).filter(y => y !== null)) as number[];
-    const yMin = Math.min(0, Math.min(...allY));
-    const yMax = Math.max(...allY) * 1.1; // 10% padding
+    // Get all y values (filter out null/undefined)
+    const allY = series.flatMap(s => s.data.map(d => d.y).filter((y): y is number => y !== null && y !== undefined));
 
-    // Scale functions
+    // Handle empty data case
+    const yMin = allY.length > 0 ? Math.min(0, Math.min(...allY)) : 0;
+    const yMax = allY.length > 0 ? Math.max(...allY) * 1.1 : 100; // 10% padding, default to 100 if no data
+
+    // Scale functions with protection against division by zero
+    const xRange = xMax - xMin || 1; // Prevent division by zero
+    const yRange = yMax - yMin || 1; // Prevent division by zero
+
     const xScale = (x: number | string): number => {
       const numX = typeof x === 'number' ? x : 0;
-      return margin.left + ((numX - xMin) / (xMax - xMin)) * innerWidth;
+      return margin.left + ((numX - xMin) / xRange) * innerWidth;
     };
 
     const yScale = (y: number): number => {
-      return margin.top + innerHeight - ((y - yMin) / (yMax - yMin)) * innerHeight;
+      return margin.top + innerHeight - ((y - yMin) / yRange) * innerHeight;
     };
 
     return {

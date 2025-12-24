@@ -302,8 +302,9 @@ function extractRequestedEntities(userMessage: string): string[] {
     return []; // Empty array = no filtering = show all
   }
 
-  // Common country names and their variations
+  // Common country names and their variations (comprehensive list for MDB use)
   const countryMappings: Record<string, string[]> = {
+    // Major economies
     'China': ['china', 'chinese'],
     'United States': ['usa', 'us', 'united states', 'america', 'american'],
     'India': ['india', 'indian'],
@@ -318,13 +319,77 @@ function extractRequestedEntities(userMessage: string): string[] {
     'Mexico': ['mexico', 'mexican'],
     'South Korea': ['south korea', 'korea', 'korean'],
     'Indonesia': ['indonesia', 'indonesian'],
+    'Saudi Arabia': ['saudi arabia', 'saudi'],
+    // African countries (MDB focus)
+    'Djibouti': ['djibouti'],
     'Nigeria': ['nigeria', 'nigerian'],
+    'Niger': ['niger', 'nigerien'],
     'South Africa': ['south africa'],
     'Egypt': ['egypt', 'egyptian'],
     'Morocco': ['morocco', 'moroccan'],
+    'Algeria': ['algeria', 'algerian'],
+    'Tunisia': ['tunisia', 'tunisian'],
+    'Libya': ['libya', 'libyan'],
+    'Sudan': ['sudan', 'sudanese'],
+    'Ethiopia': ['ethiopia', 'ethiopian'],
+    'Kenya': ['kenya', 'kenyan'],
+    'Tanzania': ['tanzania', 'tanzanian'],
+    'Uganda': ['uganda', 'ugandan'],
+    'Ghana': ['ghana', 'ghanaian'],
+    'Senegal': ['senegal', 'senegalese'],
+    'Cameroon': ['cameroon', 'cameroonian'],
+    'Angola': ['angola', 'angolan'],
+    'Mozambique': ['mozambique', 'mozambican'],
+    'Madagascar': ['madagascar', 'malagasy'],
+    'Zambia': ['zambia', 'zambian'],
+    'Zimbabwe': ['zimbabwe', 'zimbabwean'],
+    'Rwanda': ['rwanda', 'rwandan'],
+    'Somalia': ['somalia', 'somali'],
+    'Mali': ['mali', 'malian'],
+    'Burkina Faso': ['burkina faso', 'burkinabe'],
+    'Benin': ['benin', 'beninese'],
+    'Togo': ['togo', 'togolese'],
+    'Comoros': ['comoros', 'comorian'],
+    'Mauritius': ['mauritius', 'mauritian'],
+    'Seychelles': ['seychelles'],
+    'Botswana': ['botswana'],
+    'Namibia': ['namibia', 'namibian'],
+    'Chad': ['chad', 'chadian'],
+    'Gabon': ['gabon', 'gabonese'],
+    'Eritrea': ['eritrea', 'eritrean'],
+    'Burundi': ['burundi', 'burundian'],
+    'Central African Republic': ['central african', 'car'],
+    'Democratic Republic of Congo': ['dr congo', 'drc', 'congo-kinshasa', 'democratic republic of congo'],
+    'Republic of Congo': ['congo-brazzaville', 'republic of congo', 'congo rep'],
+    // South America & Caribbean
     'Argentina': ['argentina', 'argentine'],
+    'Colombia': ['colombia', 'colombian'],
+    'Peru': ['peru', 'peruvian'],
+    'Chile': ['chile', 'chilean'],
+    'Venezuela': ['venezuela', 'venezuelan'],
+    'Ecuador': ['ecuador', 'ecuadorian'],
+    // South/Southeast Asia
     'Bangladesh': ['bangladesh', 'bangladeshi'],
-    'Saudi Arabia': ['saudi arabia', 'saudi']
+    'Pakistan': ['pakistan', 'pakistani'],
+    'Vietnam': ['vietnam', 'vietnamese'],
+    'Thailand': ['thailand', 'thai'],
+    'Philippines': ['philippines', 'filipino'],
+    'Malaysia': ['malaysia', 'malaysian'],
+    'Singapore': ['singapore', 'singaporean'],
+    'Myanmar': ['myanmar', 'burmese', 'burma'],
+    'Cambodia': ['cambodia', 'cambodian'],
+    'Sri Lanka': ['sri lanka', 'sri lankan'],
+    'Nepal': ['nepal', 'nepali', 'nepalese'],
+    // Middle East
+    'United Arab Emirates': ['uae', 'united arab emirates', 'emirati'],
+    'Qatar': ['qatar', 'qatari'],
+    'Kuwait': ['kuwait', 'kuwaiti'],
+    'Jordan': ['jordan', 'jordanian'],
+    'Lebanon': ['lebanon', 'lebanese'],
+    'Iraq': ['iraq', 'iraqi'],
+    'Iran': ['iran', 'iranian', 'persia'],
+    'Turkey': ['turkey', 'turkish'],
+    'Israel': ['israel', 'israeli']
   };
 
   const found: string[] = [];
@@ -367,22 +432,12 @@ function entityMatchesRequested(entity: string, requestedEntities: string[]): bo
 function shouldUseMapVisualization(userMessage: string, entityCount: number, uniqueYears: number): boolean {
   const msg = userMessage.toLowerCase();
 
-  // Explicit map request
-  if (msg.includes('map') || msg.includes('world') || msg.includes('global') || msg.includes('by country')) {
-    return true;
-  }
+  // Only use map when user EXPLICITLY asks for it
+  // Don't auto-trigger map based on entity count (that was causing world maps for single-country queries)
+  const explicitMapRequest = (msg.includes('map') || msg.includes('global map')) &&
+    (msg.includes('world') || msg.includes('global') || msg.includes('all countries'));
 
-  // Many countries + single year = map is better
-  if (entityCount > 15 && uniqueYears === 1) {
-    return true;
-  }
-
-  // Many countries + few years = map might be better
-  if (entityCount > 30 && uniqueYears <= 3) {
-    return true;
-  }
-
-  return false;
+  return explicitMapRequest;
 }
 
 // Parse OWID data into chart format

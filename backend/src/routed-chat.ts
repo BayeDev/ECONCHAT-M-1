@@ -120,7 +120,43 @@ GUIDELINES:
 6. For trade data -> use UN Comtrade tools
 7. Use tables for multiple values
 8. Always cite the data source
-9. Format numbers nicely (billions, millions)`;
+9. Format numbers nicely (billions, millions)
+
+IMPORTANT - SUMMARY/OVERVIEW QUERIES (SEARCH ONCE, THEN FETCH):
+When the user asks for a "summary", "overview", "key metrics", or "key indicators":
+
+STEP 1 - ONE SEARCH ONLY: Make exactly 1 search call to discover indicators
+- For health: owid_search_charts with query="health"
+- For economy: wb_search_indicators with query="GDP"
+- For trade: skip search, use comtrade_get_top_partners directly
+
+STEP 2 - FETCH 4-5 DIVERSE INDICATORS: After the ONE search, immediately fetch data
+- Pick 4-5 DIFFERENT indicator slugs from the search results
+- Call owid_get_chart_data or wb_get_indicator_data for EACH indicator
+- Always include countries parameter with the requested country
+
+CRITICAL: Do NOT make more than 1 search call. After searching, you MUST fetch data.
+
+HEALTH METRICS WORKFLOW:
+1. owid_search_charts(query="health") -> get list of available charts
+2. owid_get_chart_data(chart_slug="life-expectancy", countries=["Djibouti"])
+3. owid_get_chart_data(chart_slug="infant-mortality", countries=["Djibouti"])
+4. owid_get_chart_data(chart_slug="maternal-mortality", countries=["Djibouti"])
+5. wb_get_indicator_data(indicator="SH.XPD.CHEX.PC.CD", countries=["DJI"]) for health expenditure
+
+ECONOMIC/FISCAL OVERVIEW WORKFLOW:
+1. wb_search_indicators(query="GDP") -> get indicator codes
+2. imf_get_weo_data(indicator="NGDP_RPCH", countries=["ETH"], start_year=2018, end_year=2028)
+3. imf_get_weo_data(indicator="PCPIPCH", countries=["ETH"], start_year=2018, end_year=2028)
+4. imf_get_weo_data(indicator="GGXWDG_NGDP", countries=["ETH"], start_year=2018, end_year=2028)
+5. wb_get_indicator_data(indicator="NY.GDP.MKTP.CD", countries=["ETH"])
+
+CRITICAL FOR IMF DATA:
+- ALWAYS use start_year=2018 and end_year=2028 to get a proper time series for charts
+- NEVER use just a single year (e.g., start_year=2023, end_year=2023) as that produces only 1 data point
+- IMF WEO has forecasts through 2028, so include them for context
+
+The pattern is: 1 search + 4-5 data fetches with MULTI-YEAR ranges = complete answer.`;
 
 interface Message {
   role: 'user' | 'assistant';
@@ -645,48 +681,102 @@ function extractAllChartData(
   userMessage: string
 ): ChartData[] {
   const charts: ChartData[] = [];
+  const seenTitles = new Set<string>(); // Track titles to avoid duplicates
 
   for (const { tool, result } of collectedData) {
     if (!result || typeof result !== 'object') continue;
 
+    let chartData: ChartData | null = null;
+
     // OWID data
     if ((tool === 'owid_get_chart_data' || tool === 'owid_get_data') && Array.isArray(result)) {
-      const chartData = parseOWIDDataSimple(result, userMessage);
-      if (chartData) charts.push(chartData);
+      chartData = parseOWIDDataSimple(result, userMessage);
     }
 
     // World Bank data
     if ((tool === 'wb_get_indicator' || tool === 'wb_get_indicator_data') && Array.isArray(result)) {
-      const chartData = parseWorldBankDataSimple(result);
-      if (chartData) charts.push(chartData);
+      chartData = parseWorldBankDataSimple(result);
     }
 
     // UN Comtrade data - top partners
     if (tool === 'comtrade_get_top_partners' && Array.isArray(result)) {
-      const chartData = parseComtradeTopPartners(result);
-      if (chartData) charts.push(chartData);
+      chartData = parseComtradeTopPartners(result);
     }
 
     // UN Comtrade data - trade flow
     if (tool === 'comtrade_get_trade_data' && Array.isArray(result)) {
-      const chartData = parseComtradeTradeData(result);
-      if (chartData) charts.push(chartData);
+      chartData = parseComtradeTradeData(result);
     }
 
     // IMF data
     if ((tool === 'imf_get_indicator' || tool === 'imf_get_weo_data') && Array.isArray(result)) {
-      const chartData = parseIMFData(result);
-      if (chartData) charts.push(chartData);
+      chartData = parseIMFData(result);
+    }
+
+    // Add chart only if not a duplicate (by title)
+    if (chartData && chartData.title && !seenTitles.has(chartData.title)) {
+      seenTitles.add(chartData.title);
+      charts.push(chartData);
+    } else if (chartData && !chartData.title) {
+      // No title, just add it
+      charts.push(chartData);
     }
 
     // FAO data
     if ((tool === 'fao_get_data' || tool === 'fao_get_production') && Array.isArray(result)) {
-      const chartData = parseFAOData(result);
-      if (chartData) charts.push(chartData);
+      const faoChartData = parseFAOData(result);
+      if (faoChartData && faoChartData.title && !seenTitles.has(faoChartData.title)) {
+        seenTitles.add(faoChartData.title);
+        charts.push(faoChartData);
+      } else if (faoChartData && !faoChartData.title) {
+        charts.push(faoChartData);
+      }
     }
   }
 
   return charts;
+}
+
+// Common country name mappings for entity filtering
+const COUNTRY_ALIASES: Record<string, string[]> = {
+  'djibouti': ['djibouti'],
+  'united states': ['united states', 'usa', 'us', 'america'],
+  'united kingdom': ['united kingdom', 'uk', 'britain', 'england'],
+  'south korea': ['south korea', 'korea, republic of', 'republic of korea'],
+  'north korea': ['north korea', 'korea, democratic', 'dprk'],
+  'democratic republic of congo': ['democratic republic of congo', 'congo, dem. rep.', 'dr congo', 'drc', 'congo-kinshasa'],
+  'republic of congo': ['republic of congo', 'congo, rep.', 'congo-brazzaville'],
+  'cote d\'ivoire': ['cote d\'ivoire', 'ivory coast'],
+};
+
+// Extract country/region names mentioned in the user message
+function extractEntitiesFromMessage(userMessage: string): string[] {
+  const userLower = userMessage.toLowerCase();
+  const entities: string[] = [];
+
+  // Common country names to look for
+  const countryPatterns = [
+    'djibouti', 'nigeria', 'niger', 'uganda', 'kenya', 'ethiopia', 'tanzania', 'ghana', 'senegal',
+    'south africa', 'egypt', 'morocco', 'algeria', 'tunisia', 'libya', 'sudan', 'somalia', 'rwanda',
+    'cameroon', 'angola', 'mozambique', 'madagascar', 'zambia', 'zimbabwe', 'botswana', 'namibia',
+    'malawi', 'mali', 'burkina faso', 'benin', 'togo', 'guinea', 'sierra leone', 'liberia',
+    'mauritania', 'gambia', 'cape verde', 'mauritius', 'seychelles', 'comoros', 'sao tome',
+    'eritrea', 'burundi', 'central african', 'chad', 'gabon', 'equatorial guinea', 'congo',
+    'lesotho', 'eswatini', 'swaziland',
+    // Non-African
+    'china', 'india', 'japan', 'germany', 'france', 'brazil', 'mexico', 'russia', 'canada',
+    'australia', 'indonesia', 'pakistan', 'bangladesh', 'vietnam', 'thailand', 'philippines',
+    'malaysia', 'singapore', 'united states', 'usa', 'uk', 'united kingdom'
+  ];
+
+  for (const country of countryPatterns) {
+    if (userLower.includes(country)) {
+      // Capitalize properly for matching
+      entities.push(country.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+    }
+  }
+
+  return entities;
 }
 
 // Simplified chart parsers
@@ -695,6 +785,17 @@ function parseOWIDDataSimple(data: unknown[], userMessage: string): ChartData | 
 
   const seriesMap = new Map<string, Array<{ x: number; y: number | null }>>();
   let yLabel = 'Value';
+
+  // Extract country names the user is asking about
+  const requestedEntities = extractEntitiesFromMessage(userMessage);
+  const userLower = userMessage.toLowerCase();
+
+  // Determine if this is a world/global query
+  const isGlobalQuery = userLower.includes('world') ||
+    userLower.includes('global') ||
+    userLower.includes('all countries') ||
+    userLower.includes('compare countries') ||
+    userLower.includes('by country');
 
   for (const item of data) {
     if (!item || typeof item !== 'object') continue;
@@ -714,8 +815,16 @@ function parseOWIDDataSimple(data: unknown[], userMessage: string): ChartData | 
     }
 
     if (typeof entity === 'string' && typeof year === 'number') {
-      if (!seriesMap.has(entity)) seriesMap.set(entity, []);
-      seriesMap.get(entity)!.push({ x: year, y: value });
+      // Filter: only include entities that match user's request (or all if global query)
+      const entityLower = entity.toLowerCase();
+      const shouldInclude = isGlobalQuery ||
+        requestedEntities.length === 0 ||
+        requestedEntities.some(req => entityLower.includes(req.toLowerCase()) || req.toLowerCase().includes(entityLower));
+
+      if (shouldInclude) {
+        if (!seriesMap.has(entity)) seriesMap.set(entity, []);
+        seriesMap.get(entity)!.push({ x: year, y: value });
+      }
     }
   }
 
@@ -727,9 +836,10 @@ function parseOWIDDataSimple(data: unknown[], userMessage: string): ChartData | 
     for (const p of points) allYears.add(p.x);
   }
 
-  const useMap = userMessage.toLowerCase().includes('map') ||
-    userMessage.toLowerCase().includes('world') ||
-    (seriesMap.size > 15 && allYears.size === 1);
+  // Only use map when user explicitly asks for it
+  // Don't auto-trigger map just because OWID returned many countries
+  const useMap = (userLower.includes('map') || userLower.includes('global map')) &&
+    (userLower.includes('world') || userLower.includes('global') || userLower.includes('all countries'));
 
   if (useMap) {
     const targetYear = Math.max(...allYears);
@@ -923,30 +1033,93 @@ function determineChartType(seriesMap: Map<string, Array<{ x: number; y: number 
   return (seriesMap.size > 1 && allYears.size <= 2) ? 'bar' : 'line';
 }
 
+// IMF indicator code to human-readable name mapping
+const IMF_INDICATOR_NAMES: Record<string, string> = {
+  'NGDP_RPCH': 'Real GDP Growth (%)',
+  'NGDP': 'Nominal GDP (billions)',
+  'NGDPD': 'GDP (current prices, USD billions)',
+  'NGDP_R': 'Real GDP',
+  'NGDPDPC': 'GDP per capita (USD)',
+  'PCPIPCH': 'Inflation Rate (%)',
+  'PCPI': 'Consumer Price Index',
+  'PCPIEPCH': 'End-of-period Inflation (%)',
+  'GGXWDG_NGDP': 'Government Debt (% of GDP)',
+  'GGXCNL_NGDP': 'Fiscal Balance (% of GDP)',
+  'GGXONLB_NGDP': 'Primary Balance (% of GDP)',
+  'GGSB_NPGDP': 'Structural Balance (% of GDP)',
+  'BCA_NGDPD': 'Current Account Balance (% of GDP)',
+  'BCA': 'Current Account Balance (USD billions)',
+  'LUR': 'Unemployment Rate (%)',
+  'LP': 'Population (millions)',
+  'TM_RPCH': 'Import Volume Growth (%)',
+  'TX_RPCH': 'Export Volume Growth (%)',
+  'PPPGDP': 'GDP (PPP, international dollars)',
+  'PPPPC': 'GDP per capita (PPP)',
+  'GGR_NGDP': 'Government Revenue (% of GDP)',
+  'GGX_NGDP': 'Government Expenditure (% of GDP)'
+};
+
+// Country ISO3 code to full name mapping
+const COUNTRY_NAMES: Record<string, string> = {
+  'ETH': 'Ethiopia', 'NGA': 'Nigeria', 'NER': 'Niger', 'KEN': 'Kenya',
+  'GHA': 'Ghana', 'TZA': 'Tanzania', 'UGA': 'Uganda', 'ZAF': 'South Africa',
+  'EGY': 'Egypt', 'MAR': 'Morocco', 'DZA': 'Algeria', 'TUN': 'Tunisia',
+  'RWA': 'Rwanda', 'SEN': 'Senegal', 'CMR': 'Cameroon', 'AGO': 'Angola',
+  'MOZ': 'Mozambique', 'MDG': 'Madagascar', 'ZMB': 'Zambia', 'ZWE': 'Zimbabwe',
+  'BWA': 'Botswana', 'NAM': 'Namibia', 'MWI': 'Malawi', 'MLI': 'Mali',
+  'BFA': 'Burkina Faso', 'BEN': 'Benin', 'TGO': 'Togo', 'GIN': 'Guinea',
+  'SLE': 'Sierra Leone', 'LBR': 'Liberia', 'MRT': 'Mauritania', 'GMB': 'Gambia',
+  'CPV': 'Cape Verde', 'MUS': 'Mauritius', 'SYC': 'Seychelles', 'COM': 'Comoros',
+  'ERI': 'Eritrea', 'BDI': 'Burundi', 'CAF': 'Central African Republic',
+  'TCD': 'Chad', 'GAB': 'Gabon', 'GNQ': 'Equatorial Guinea', 'COG': 'Congo',
+  'COD': 'DR Congo', 'LSO': 'Lesotho', 'SWZ': 'Eswatini', 'DJI': 'Djibouti',
+  'SDN': 'Sudan', 'SSD': 'South Sudan', 'SOM': 'Somalia', 'LBY': 'Libya',
+  'CHN': 'China', 'IND': 'India', 'JPN': 'Japan', 'DEU': 'Germany',
+  'FRA': 'France', 'BRA': 'Brazil', 'MEX': 'Mexico', 'RUS': 'Russia',
+  'CAN': 'Canada', 'AUS': 'Australia', 'IDN': 'Indonesia', 'PAK': 'Pakistan',
+  'BGD': 'Bangladesh', 'VNM': 'Vietnam', 'THA': 'Thailand', 'PHL': 'Philippines',
+  'MYS': 'Malaysia', 'SGP': 'Singapore', 'USA': 'United States', 'GBR': 'United Kingdom',
+  'ARG': 'Argentina', 'CHL': 'Chile', 'COL': 'Colombia', 'PER': 'Peru',
+  'SAU': 'Saudi Arabia', 'ARE': 'UAE', 'TUR': 'Turkey', 'POL': 'Poland',
+  'ITA': 'Italy', 'ESP': 'Spain', 'NLD': 'Netherlands', 'BEL': 'Belgium'
+};
+
+// Get human-readable IMF indicator name
+function getIMFIndicatorName(code: string): string {
+  return IMF_INDICATOR_NAMES[code] || code;
+}
+
+// Get full country name from ISO3 code
+function getCountryName(code: string): string {
+  return COUNTRY_NAMES[code] || code;
+}
+
 // Parse IMF WEO data
 function parseIMFData(data: unknown[]): ChartData | null {
   if (!data || data.length === 0) return null;
 
   const seriesMap = new Map<string, Array<{ x: number; y: number | null }>>();
-  let indicatorName = 'Value';
+  let indicatorCode = 'Value';
 
   for (const item of data) {
     if (!item || typeof item !== 'object') continue;
     const record = item as Record<string, unknown>;
 
-    const country = record.country || record['@UNIT'] || record.ISO;
+    const countryCode = record.country || record['@UNIT'] || record.ISO;
     const year = record.year || record['@TIME_PERIOD'];
     const value = record.value || record['@OBS_VALUE'];
 
-    if (typeof record.indicator === 'string' && indicatorName === 'Value') {
-      indicatorName = record.indicator;
+    if (typeof record.indicator === 'string' && indicatorCode === 'Value') {
+      indicatorCode = record.indicator;
     }
 
-    if (typeof country === 'string' && year) {
+    if (typeof countryCode === 'string' && year) {
       const yearNum = typeof year === 'number' ? year : parseInt(String(year));
       if (!isNaN(yearNum)) {
-        if (!seriesMap.has(country)) seriesMap.set(country, []);
-        seriesMap.get(country)!.push({
+        // Use full country name instead of ISO code
+        const countryName = getCountryName(countryCode);
+        if (!seriesMap.has(countryName)) seriesMap.set(countryName, []);
+        seriesMap.get(countryName)!.push({
           x: yearNum,
           y: typeof value === 'number' ? value : null
         });
@@ -956,11 +1129,25 @@ function parseIMFData(data: unknown[]): ChartData | null {
 
   if (seriesMap.size === 0) return null;
 
+  // Count total data points
+  let totalPoints = 0;
+  for (const points of seriesMap.values()) {
+    totalPoints += points.length;
+  }
+
+  // Don't create a chart for very few data points - better as text
+  if (totalPoints < 3) {
+    return null;
+  }
+
   const chartType = determineChartType(seriesMap);
   const series = Array.from(seriesMap.entries()).map(([name, points]) => ({
     name,
     data: points.sort((a, b) => a.x - b.x)
   }));
+
+  // Use human-readable indicator name
+  const indicatorName = getIMFIndicatorName(indicatorCode);
 
   return {
     type: chartType,
